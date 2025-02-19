@@ -1,0 +1,11 @@
+[package]
+name = "seep_seek_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow="1.0.95"
+reqwest = {version="0.12.12", features = ["json"]}
+schemars = "0.8.21"
+serde = {version = "1.0.217", features = ["derive"]}
+serde_json = "1.0.138"
