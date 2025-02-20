@@ -1,5 +1,5 @@
 use crate::{
-    options::{CompletionsRequest, MessageRequest, SystemMessageRequest, UserMessageRequest},
+    options::{CompletionsRequest, MessageRequest, UserMessageRequest},
     ChatCompletion, Message, ModelType,
 };
 use anyhow::Result;
