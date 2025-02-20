@@ -1,15 +1,15 @@
 use schemars::schema::SchemaObject;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-
-use crate::{LogProb, ModelType, ToolCall};
+use crate::{ModelType, Message};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FrequencyPenalty(pub f32);
 
 impl FrequencyPenalty {
-    pub fn new(v: f32) -> Result<Self, String> {
+    pub fn new(v: f32) -> Result<Self> {
         if v < -2.0 || v > 2.0 {
-            return Err("Frequency penalty value must be between -2 and 2.".to_string());
+            return Err(anyhow!("Frequency penalty value must be between -2 and 2.".to_string()));
         }
         Ok(FrequencyPenalty(v))
     }
@@ -25,9 +25,9 @@ impl Default for FrequencyPenalty {
 pub struct PresencePenalty(pub f32);
 
 impl PresencePenalty {
-    pub fn new(v: f32) -> Result<Self, String> {
+    pub fn new(v: f32) -> Result<Self> {
         if v < -2.0 || v > 2.0 {
-            return Err("Presence penalty value must be between -2 and 2.".to_string());
+            return Err(anyhow!("Presence penalty value must be between -2 and 2.".to_string()));
         }
         Ok(PresencePenalty(v))
     }
@@ -63,9 +63,9 @@ impl ResponseForamt {
 pub struct MaxToken(pub u32);
 
 impl MaxToken {
-    pub fn new(v: u32) -> Result<Self, String> {
+    pub fn new(v: u32) -> Result<Self> {
         if v < 1 || v > 8192 {
-            return Err("Max token must be between 1 and 8192.".to_string());
+            return Err(anyhow!("Max token must be between 1 and 8192.".to_string()));
         }
         Ok(MaxToken(v))
     }
@@ -98,9 +98,9 @@ impl StreamOptions {
 pub struct Temperature(pub u32);
 
 impl Temperature {
-    pub fn new(v: u32) -> Result<Self, String> {
+    pub fn new(v: u32) -> Result<Self> {
         if v > 2 {
-            return Err("Temperature must be between 0 and 2.".to_string());
+            return Err(anyhow!("Temperature must be between 0 and 2.".to_string()));
         }
         Ok(Temperature(v))
     }
@@ -116,9 +116,9 @@ impl Default for Temperature {
 pub struct TopP(pub f32);
 
 impl TopP {
-    pub fn new(v: f32) -> Result<Self, String> {
+    pub fn new(v: f32) -> Result<Self> {
         if v < 0.0 || v > 1.0 {
-            return Err("TopP value must be between 0and 2.".to_string());
+            return Err(anyhow!("TopP value must be between 0and 2.".to_string()));
         }
         Ok(TopP(v))
     }
@@ -181,9 +181,9 @@ pub enum ToolChoice {
 pub struct TopLogprobs(pub u32);
 
 impl TopLogprobs {
-    pub fn new(v: u32) -> Result<Self, String> {
+    pub fn new(v: u32) -> Result<Self> {
         if v > 20 {
-            return Err("Top log probs must be between 0 and 20.".to_string());
+            return Err(anyhow!("Top log probs must be between 0 and 20.".to_string()));
         }
         Ok(TopLogprobs(v))
     }
@@ -194,25 +194,138 @@ impl Default for TopLogprobs {
         TopLogprobs(0)
     }
 }
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MessageRequest {
+#[serde(tag = "role")]
+pub enum MessageRequest {
+    #[serde(rename = "system")]
+    System(SystemMessageRequest),
+    #[serde(rename = "user")]
+    User(UserMessageRequest),
+    #[serde(rename = "assistant")]
+    Assistant(AssistantMessageRequest),
+    #[serde(rename = "tool")]
+    Tool(ToolMessageRequest)
+}
+
+impl MessageRequest {
+    pub fn from_message(resp_message: &Message) -> Result<Self> {
+        match resp_message.role.as_str() {
+            "system" => Ok(MessageRequest::System(SystemMessageRequest {
+                content: resp_message.content.clone(),
+                name: None,
+            })),
+            "user" => Ok(MessageRequest::User(UserMessageRequest {
+                content: resp_message.content.clone(),
+                name: None,
+            })),
+            "assistant" => {
+                let request = match resp_message.reasoning_content.clone() {
+                    Some(reasoning_content) => {
+                        AssistantMessageRequest::new(resp_message.content.as_str())
+                            .set_reasoning_content(reasoning_content.as_str())
+                    },
+                    None => AssistantMessageRequest::new(resp_message.content.as_str())
+                };
+                Ok(MessageRequest::Assistant(request))
+            },
+            "tool" => Ok(MessageRequest::Tool(ToolMessageRequest {
+                content: resp_message.content.clone(),
+                tool_call_id: "".to_string(),  //todo how to get tool_call_id ?
+            })),
+            _ => Err(anyhow!("Invalid message role.".to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SystemMessageRequest {
     pub content: String,
-    pub role: String,
     pub name: Option<String>,
 }
-impl MessageRequest {
+
+impl SystemMessageRequest {
     pub fn new(msg: &str) -> Self {
-        MessageRequest {
+        SystemMessageRequest {
             content: msg.to_string(),
-            role: "system".to_string(),
             name: None,
         }
     }
     pub fn new_with_name(name: &str, msg: &str) -> Self {
-        MessageRequest {
+        SystemMessageRequest {
             content: msg.to_string(),
-            role: "system".to_string(),
             name: Some(name.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UserMessageRequest {
+    pub content: String,
+    pub name: Option<String>,
+
+}
+
+impl UserMessageRequest {
+    pub fn new(msg: &str) -> Self {
+        UserMessageRequest {
+            content: msg.to_string(),
+            name: None,
+        }
+    }
+    pub fn new_with_name(name: &str, msg: &str) -> Self {
+        UserMessageRequest {
+            content: msg.to_string(),
+            name: Some(name.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AssistantMessageRequest {
+    pub content: String,
+    pub name: Option<String>,
+    pub prefix: bool,
+    pub reasoning_content: Option<String>
+}
+
+impl AssistantMessageRequest {
+    pub fn new(msg: &str) -> Self {
+        AssistantMessageRequest {
+            content: msg.to_string(),
+            name: None,
+            prefix:false,
+            reasoning_content:None,
+        }
+    }
+    pub fn new_with_name(name: &str, msg: &str) -> Self {
+        AssistantMessageRequest {
+            content: msg.to_string(),
+            name: Some(name.to_string()),
+            prefix:false,
+            reasoning_content:None
+        }
+    }
+
+    pub fn set_reasoning_content(mut self, content: &str) ->Self{
+        self.prefix = true;
+        self.reasoning_content = Some(content.to_string());
+        self
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ToolMessageRequest {
+    pub content: String,
+    pub tool_call_id: String,
+}
+
+impl ToolMessageRequest {
+    pub fn new(msg: &str, tool_call_id: &str) -> Self {
+        ToolMessageRequest {
+            content: msg.to_string(),
+            tool_call_id: tool_call_id.to_string(),
         }
     }
 }

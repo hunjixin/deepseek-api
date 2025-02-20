@@ -1,5 +1,5 @@
 use crate::{
-    options::{CompletionsRequest, MessageRequest},
+    options::{CompletionsRequest, MessageRequest, SystemMessageRequest, UserMessageRequest},
     ChatCompletion, Message, ModelType,
 };
 use anyhow::Result;
@@ -13,13 +13,16 @@ pub struct Completions {
 impl Completions {
     pub async fn talk(&mut self, msg: &str) -> Result<Vec<Message>> {
         let mut message = self.messages.clone();
-        message.push(MessageRequest::new(msg));
+        message.push(MessageRequest::User(UserMessageRequest::new(msg)));
         let body_params = CompletionsRequest {
             messages: message,
             model: ModelType::DeepSeekChat,
             ..Default::default()
         };
-        {
+
+        {//debug
+            let request_body = serde_json::to_string(&body_params).unwrap();
+            println!("request_body   {}", request_body);
             let texts = self
             .client
             .post(self.host.to_owned() + "/completions")
@@ -31,6 +34,7 @@ impl Completions {
             println!("text   {}", texts);
             println!("xxxxxxx")
         }
+
         let results: ChatCompletion = self
             .client
             .post(self.host.to_owned() + "/completions")
@@ -45,7 +49,7 @@ impl Completions {
             .iter()
             .map(|choice| {
                 self.messages
-                    .push(MessageRequest::new(&choice.message.content));
+                    .push(MessageRequest::from_message(&choice.message).expect("Unexpected message"));
                 choice.message.clone()
             })
             .collect();
