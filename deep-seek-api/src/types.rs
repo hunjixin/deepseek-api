@@ -9,7 +9,7 @@ pub enum ModelType {
     #[default]
     #[serde(rename = "deepseek-chat")]
     DeepSeekChat,
-    
+
     /// Model type for reasoning-based interactions.
     #[serde(rename = "deepseek-reasoner")]
     DeepSeekReasoner,

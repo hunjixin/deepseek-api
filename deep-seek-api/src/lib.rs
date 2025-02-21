@@ -38,6 +38,7 @@ impl Client {
         Completions {
             client: self.client.clone(),
             host: self.host,
+            model: ModelType::DeepSeekChat,
             messages: vec![],
         }
     }

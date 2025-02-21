@@ -1,45 +1,44 @@
 use crate::{
-    options::{CompletionsRequest, MessageRequest, UserMessageRequest},
+    options::{
+        AssistantMessageRequest, CompletionsRequest, CompletionsRequestBuilder, MessageRequest,
+        UserMessageRequest,
+    },
     ChatCompletion, Message, ModelType,
+    error::ToApiError,
 };
 use anyhow::Result;
 use reqwest::Client as HttpClient;
+
 pub struct Completions {
     pub(crate) client: HttpClient,
     pub(crate) host: &'static str,
+    pub(crate) model: ModelType,
     pub(crate) messages: Vec<MessageRequest>,
 }
 
 impl Completions {
-    pub async fn talk(&mut self, msg: &str) -> Result<Vec<Message>> {
-        let mut message = self.messages.clone();
-        message.push(MessageRequest::User(UserMessageRequest::new(msg)));
-        let body_params = CompletionsRequest {
-            messages: message,
-            model: ModelType::DeepSeekChat,
-            ..Default::default()
-        };
+    pub fn set_model(mut self, model: ModelType) -> Self {
+        self.model = model;
+        self
+    }
 
-        {//debug
-            let request_body = serde_json::to_string(&body_params).unwrap();
-            println!("request_body   {}", request_body);
-            let texts = self
-            .client
-            .post(self.host.to_owned() + "/completions")
-            .json(&body_params)
-            .send()
-            .await?
-            .text()
-            .await?;
-            println!("text   {}", texts);
-            println!("xxxxxxx")
-        }
+    pub fn request_builder(&self) -> CompletionsRequestBuilder {
+        CompletionsRequestBuilder::new(self.messages.clone(), self.model.clone())
+    }
+
+    pub async fn create(&mut self, request: &CompletionsRequest) -> Result<Vec<Message>> {
+        #[cfg(feature = "beta")]
+        let host = self.host.to_owned() + "/beta/completions";
+        #[cfg(not(feature = "beta"))]
+        let host = self.host.to_owned() + "/completions";
 
         let results: ChatCompletion = self
             .client
-            .post(self.host.to_owned() + "/completions")
-            .json(&body_params)
+            .post(&host)
+            .json(request)
             .send()
+            .await?
+            .to_api_err()
             .await?
             .json()
             .await?;
@@ -48,8 +47,16 @@ impl Completions {
             .choices
             .iter()
             .map(|choice| {
-                self.messages
-                    .push(MessageRequest::from_message(&choice.message).expect("Unexpected message"));
+                if self.model == ModelType::DeepSeekChat {
+                    self.messages.push(
+                        MessageRequest::from_message(&choice.message).expect("Unexpected message"),
+                    );
+                } else {
+                    self.messages
+                        .push(MessageRequest::Assistant(AssistantMessageRequest::new(
+                            &choice.message.content,
+                        )));
+                }
                 choice.message.clone()
             })
             .collect();
