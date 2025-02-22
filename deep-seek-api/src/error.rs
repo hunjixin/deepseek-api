@@ -1,6 +1,9 @@
 use std::fmt;
 
+use reqwest::Response;
+
 pub enum ApiError {
+    Unknown(String),
     BadRequest(String),
     Unauthorized(String),
     InsufficientFunds(String),
@@ -12,6 +15,7 @@ pub enum ApiError {
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
+            ApiError::Unknown(msg) => format!("Unknown Error: {}", msg),
             ApiError::BadRequest(msg) => format!("Bad Request: {}", msg),
             ApiError::Unauthorized(msg) => format!("Unauthorized: {}", msg),
             ApiError::InsufficientFunds(msg) => format!("Insufficient Funds: {}", msg),
@@ -33,15 +37,18 @@ impl fmt::Debug for ApiError {
 impl std::error::Error for ApiError {}
 
 pub trait ToApiError {
-    async fn to_api_err(self) -> Result<reqwest::Response, ApiError>;
+    fn to_api_err(self) -> impl std::future::Future<Output = Result<Response, ApiError>> + Send;
 }
 
-impl ToApiError for reqwest::Response {
-     async fn to_api_err(self) -> Result<reqwest::Response, ApiError> {
+impl ToApiError for Response {
+    async fn to_api_err(self) -> Result<Response, ApiError> {
         let status = self.status().as_u16();
         match status {
             400 | 401 | 402 | 403 | 429 | 500 | 503 => {
-                let message = self.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                let message = self
+                    .text()
+                    .await
+                    .map_err(|err| ApiError::Unknown(err.to_string()))?;
                 Err(match status {
                     400 => ApiError::BadRequest(message),
                     401 => ApiError::Unauthorized(message),
@@ -50,10 +57,13 @@ impl ToApiError for reqwest::Response {
                     429 => ApiError::RateLimitExceeded(message),
                     500 => ApiError::ServerError(message),
                     503 => ApiError::ServiceUnavailable(message),
-                    _ => unreachable!(),
+                    code => ApiError::Unknown(format!(
+                        "Response error not in document{}: {}",
+                        code, message
+                    )),
                 })
             }
             _ => Ok(self),
-        }    
+        }
     }
 }

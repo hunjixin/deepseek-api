@@ -1,7 +1,7 @@
 pub mod completions;
 mod error;
-pub mod options;
-mod types;
+pub mod request;
+mod response;
 
 use anyhow::Result;
 pub use error::*;
@@ -9,7 +9,7 @@ pub use error::*;
 use completions::Completions;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client as HttpClient, ClientBuilder};
-pub use types::*;
+pub use response::*;
 
 pub struct Client {
     client: HttpClient,

@@ -1,8 +1,3 @@
 # Deep Seek API SDK
 
 This SDK allows you to interact with the Deep Seek API for various operations. It is currently under development.
-
-
-
-{"max_tokens": Number(100), "messages": Array [Object {"content": String("System message"), "name": Null, "role": String("system")}, Object {"content": String("User message"), "name": Null, "role": String("user")}], "model": String("deepseek-reasoner"), "prompt": String("Test prompt"), "response_format": Object {"type": String("json_object")}, "stop": Object {"Single": String(".")}, "stream": Bool(true), "stream_options": Object {"include_usage": Bool(true)}, "tool_choice": Object {"ChatCompletion": String("auto")}, "tools": Array [Object {"function": Object {"description": String("Test function"), "name": String("test_function"), "parameters": Object {}}, "type": String("function")}]}
-{"max_tokens": Number(100), "messages": Array [Object {"content": String("System message"), "name": Null, "role": String("system")}, Object {"content": String("User message"), "name": Null, "role": String("user")}], "model": String("DeepSeekReasoner"), "prompt": String("Test prompt"), "response_format": Object {"type": String("json_object")}, "stop": Object {"Single": String(".")}, "stream": Bool(true), "stream_options": Object {"include_usage": Bool(true)}, "tool_choice": Object {"ChatCompletion": String("auto")}, "tools": Array [Object {"function": Object {"description": String("Test function"), "name": String("test_function"), "parameters": Object {}}, "type": String("function")}]}

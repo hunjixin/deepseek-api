@@ -1,10 +1,9 @@
 use crate::{
-    options::{
+    error::ToApiError,
+    request::{
         AssistantMessageRequest, CompletionsRequest, CompletionsRequestBuilder, MessageRequest,
-        UserMessageRequest,
     },
     ChatCompletion, Message, ModelType,
-    error::ToApiError,
 };
 use anyhow::Result;
 use reqwest::Client as HttpClient;
