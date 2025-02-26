@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use seep_seek_api::{Client, ModelType};
+use seep_seek_api::response::ModelType;
+use seep_seek_api::Client;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -22,11 +23,9 @@ async fn main() -> Result<()> {
     println!("models {:?}", models);
 
     let mut completions = client.completions().set_model(ModelType::DeepSeekChat);
-    let request = completions
-        .request_builder()
-        .append_user_message("你好啊")
-        .build();
-    let resp = completions.create(&request).await?;
+    let builder = completions.chat_builder().append_user_message("你好啊");
+    let resp = completions.create(builder).await?;
+
     println!("resp {:?}", resp);
     Ok(())
 }

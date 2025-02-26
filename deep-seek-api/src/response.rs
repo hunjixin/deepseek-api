@@ -205,7 +205,9 @@ pub struct Choice {
     /// Index of the choice.
     pub index: usize,
     /// Message associated with the choice.
-    pub message: Message,
+    pub text: Option<String>,
+    /// Message associated with the choice.
+    pub message: Option<Message>,
     /// Optional log probability information.
     pub logprobs: Option<LogProbWrap>,
 }

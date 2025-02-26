@@ -1,9 +1,10 @@
 use crate::{
     error::ToApiError,
     request::{
-        AssistantMessageRequest, CompletionsRequest, CompletionsRequestBuilder, MessageRequest,
+        AssistantMessageRequest, CompletionsRequestBuilder, FMICompletionsRequestBuilder,
+        InToRequest, MessageRequest,
     },
-    ChatCompletion, Message, ModelType,
+    response::{ChatCompletion, Message, ModelType},
 };
 use anyhow::Result;
 use reqwest::Client as HttpClient;
@@ -21,20 +22,32 @@ impl Completions {
         self
     }
 
-    pub fn request_builder(&self) -> CompletionsRequestBuilder {
+    pub fn chat_builder(&self) -> CompletionsRequestBuilder {
         CompletionsRequestBuilder::new(self.messages.clone(), self.model.clone())
     }
 
-    pub async fn create(&mut self, request: &CompletionsRequest) -> Result<Vec<Message>> {
-        #[cfg(feature = "beta")]
-        let host = self.host.to_owned() + "/beta/completions";
-        #[cfg(not(feature = "beta"))]
-        let host = self.host.to_owned() + "/completions";
+    pub fn fim_builder(&self, prompt: &str, suffix: &str) -> FMICompletionsRequestBuilder {
+        FMICompletionsRequestBuilder::new(self.model.clone(), prompt, suffix)
+    }
 
+    pub async fn create<Builder>(&mut self, request_builder: Builder) -> Result<Vec<String>>
+    where
+        Builder: InToRequest,
+    {
+        let host = if request_builder.is_beta() {
+            self.host.to_owned() + "/beta/completions"
+        } else {
+            self.host.to_owned() + "/chat/completions"
+        };
+
+        let request = request_builder.build();
+
+        let body = serde_json::to_string(&request)?;
+        println!("request: {}", body);
         let results: ChatCompletion = self
             .client
             .post(&host)
-            .json(request)
+            .json(&request)
             .send()
             .await?
             .to_api_err()
@@ -46,17 +59,19 @@ impl Completions {
             .choices
             .iter()
             .map(|choice| {
-                if self.model == ModelType::DeepSeekChat {
-                    self.messages.push(
-                        MessageRequest::from_message(&choice.message).expect("Unexpected message"),
-                    );
+                if let Some(msg) = &choice.message {
+                    if self.model == ModelType::DeepSeekChat {
+                        self.messages
+                            .push(MessageRequest::from_message(msg).expect("Unexpected message"));
+                    } else {
+                        self.messages.push(MessageRequest::Assistant(
+                            AssistantMessageRequest::new(&msg.content),
+                        ));
+                    }
+                    msg.content.clone()
                 } else {
-                    self.messages
-                        .push(MessageRequest::Assistant(AssistantMessageRequest::new(
-                            &choice.message.content,
-                        )));
+                    choice.text.clone().unwrap()
                 }
-                choice.message.clone()
             })
             .collect();
 

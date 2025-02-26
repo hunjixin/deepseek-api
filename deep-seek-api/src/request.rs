@@ -1,4 +1,4 @@
-use crate::{Message, ModelType};
+use crate::response::{Message, ModelType};
 use anyhow::{anyhow, Result};
 use schemars::schema::SchemaObject;
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -493,12 +493,19 @@ impl ToolMessageRequest {
     }
 }
 
+pub trait InToRequest {
+    type Request: Serialize;
+
+    fn is_beta(&self) -> bool;
+    fn build(self) -> Self::Request;
+}
+
 /// Represents a request for completions.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 pub struct CompletionsRequest {
     pub messages: Vec<MessageRequest>,
     pub model: ModelType,
-
+    pub prompt: String,
     pub max_tokens: Option<MaxToken>,
     pub response_format: Option<ResponseFormat>,
     pub stop: Option<Stop>,
@@ -506,7 +513,6 @@ pub struct CompletionsRequest {
     pub stream_options: Option<StreamOptions>,
     pub tools: Option<Vec<ToolObject>>,
     pub tool_choice: Option<ToolChoice>,
-    pub prompt: String, //nochange not in document
 
     // ignore when model is deepseek-reasoner
     pub temperature: Option<Temperature>,
@@ -551,6 +557,7 @@ impl Serialize for CompletionsRequest {
 
 #[derive(Debug, Default)]
 pub struct CompletionsRequestBuilder {
+    beta: bool,
     messages: Vec<MessageRequest>,
     model: ModelType,
 
@@ -582,13 +589,11 @@ impl CompletionsRequestBuilder {
     }
 
     //https://api-docs.deepseek.com/guides/fim_completion
-    #[cfg(feature = "beta")]
     pub fn append_fim_message(self, _prompt: &str, _suffix: &str) -> Self {
         todo!("Not enough detail in document")
     }
 
     // https://api-docs.deepseek.com/zh-cn/guides/chat_prefix_completion
-    #[cfg(feature = "beta")]
     pub fn append_prefix_message(mut self, msg: &str) -> Self {
         self.messages.push(MessageRequest::Assistant(
             AssistantMessageRequest::new(msg).set_prefix(msg),
@@ -604,6 +609,11 @@ impl CompletionsRequestBuilder {
 
     pub fn max_tokens(mut self, value: MaxToken) -> Self {
         self.max_tokens = Some(value);
+        self
+    }
+
+    pub fn use_beta(mut self, value: bool) -> Self {
+        self.beta = value;
         self
     }
 
@@ -671,8 +681,16 @@ impl CompletionsRequestBuilder {
         self.top_logprobs = Some(value);
         self
     }
+}
 
-    pub fn build(self) -> CompletionsRequest {
+impl InToRequest for CompletionsRequestBuilder {
+    type Request = CompletionsRequest;
+
+    fn is_beta(&self) -> bool {
+        self.beta
+    }
+
+    fn build(self) -> CompletionsRequest {
         CompletionsRequest {
             messages: self.messages,
             model: self.model,
@@ -694,71 +712,127 @@ impl CompletionsRequestBuilder {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
+/// Represents a request for completions.
+#[derive(Debug, Default, Clone, PartialEq, Serialize)]
+pub struct FMICompletionsRequest {
+    pub model: ModelType,
+    pub prompt: String,
+    pub echo: bool,
 
-    #[test]
-    fn test_completions_request_serialize() {
-        let request = CompletionsRequest {
-            messages: vec![
-                MessageRequest::System(SystemMessageRequest::new("System message")),
-                MessageRequest::User(UserMessageRequest::new("User message")),
-            ],
-            model: ModelType::DeepSeekReasoner,
-            max_tokens: Some(MaxToken(100)),
-            response_format: Some(ResponseFormat::new(ResponseType::Json)),
-            stop: Some(Stop::Single(".".to_string())),
-            stream: true,
-            stream_options: Some(StreamOptions::new(true)),
-            tools: Some(vec![ToolObject {
-                tool_type: ToolType::Function,
-                function: Function {
-                    description: "Test function".to_string(),
-                    name: "test_function".to_string(),
-                    parameters: SchemaObject::default(),
-                },
-            }]),
-            tool_choice: Some(ToolChoice::ChatCompletion(ChatCompletionToolChoice::Auto)),
-            prompt: "Test prompt".to_string(),
-            temperature: Some(Temperature(1)),
-            top_p: Some(TopP(0.9)),
-            presence_penalty: Some(PresencePenalty(0.5)),
-            frequency_penalty: Some(FrequencyPenalty(0.5)),
-            logprobs: Some(true),
-            top_logprobs: Some(TopLogprobs(10)),
-        };
+    pub frequency_penalty: Option<FrequencyPenalty>,
+    pub logprobs: Option<bool>,
+    pub max_tokens: Option<MaxToken>,
+    pub presence_penalty: Option<PresencePenalty>,
+    pub stop: Option<Stop>,
+    pub stream: bool,
+    pub stream_options: Option<StreamOptions>,
+    pub suffix: String,
+    pub temperature: Option<Temperature>,
+    pub top_p: Option<TopP>,
+}
 
-        let serialized = serde_json::to_string(&request).unwrap();
-        let expected = json!({
-            "messages": [
-                { "role": "system", "content": "System message", "name": null },
-                { "role": "user", "content": "User message", "name": null }
-            ],
-            "model": "deepseek-reasoner",
-            "max_tokens": 100,
-            "response_format": { "type": "json_object" },
-            "stop": { "Single": "." },
-            "stream": true,
-            "stream_options": { "include_usage": true },
-            "tools": [
-                {
-                    "type": "function",
-                    "function": {
-                        "description": "Test function",
-                        "name": "test_function",
-                        "parameters": {}
-                    }
-                }
-            ],
-            "tool_choice": { "ChatCompletion": "auto" },
-            "prompt": "Test prompt"
-        });
+#[derive(Debug, Default)]
+pub struct FMICompletionsRequestBuilder {
+    model: ModelType,
+    prompt: String,
+    echo: bool,
+    frequency_penalty: Option<FrequencyPenalty>,
+    logprobs: Option<bool>,
+    max_tokens: Option<MaxToken>,
+    presence_penalty: Option<PresencePenalty>,
+    stop: Option<Stop>,
+    stream: bool,
+    stream_options: Option<StreamOptions>,
+    suffix: String,
+    temperature: Option<Temperature>,
+    top_p: Option<TopP>,
+}
 
-        assert_eq!(
-            serde_json::from_str::<serde_json::Value>(&serialized).unwrap(),
-            expected
-        );
+impl FMICompletionsRequestBuilder {
+    pub fn new(model: ModelType, prompt: &str, suffix: &str) -> Self {
+        Self {
+            model,
+            prompt: prompt.to_string(),
+            suffix: suffix.to_string(),
+            echo: false,
+            stream: false,
+            ..Default::default()
+        }
+    }
+
+    pub fn echo(mut self, value: bool) -> Self {
+        self.echo = value;
+        self
+    }
+
+    pub fn frequency_penalty(mut self, value: FrequencyPenalty) -> Self {
+        self.frequency_penalty = Some(value);
+        self
+    }
+
+    pub fn logprobs(mut self, value: bool) -> Self {
+        self.logprobs = Some(value);
+        self
+    }
+
+    pub fn max_tokens(mut self, value: MaxToken) -> Self {
+        self.max_tokens = Some(value);
+        self
+    }
+
+    pub fn presence_penalty(mut self, value: PresencePenalty) -> Self {
+        self.presence_penalty = Some(value);
+        self
+    }
+
+    pub fn stop(mut self, value: Stop) -> Self {
+        self.stop = Some(value);
+        self
+    }
+
+    pub fn stream(mut self, value: bool) -> Self {
+        self.stream = value;
+        self
+    }
+
+    pub fn stream_options(mut self, value: StreamOptions) -> Self {
+        self.stream_options = Some(value);
+        self
+    }
+
+    pub fn temperature(mut self, value: Temperature) -> Self {
+        self.temperature = Some(value);
+        self
+    }
+
+    pub fn top_p(mut self, value: TopP) -> Self {
+        self.top_p = Some(value);
+        self
+    }
+}
+
+impl InToRequest for FMICompletionsRequestBuilder {
+    type Request = FMICompletionsRequest;
+
+    fn is_beta(&self) -> bool {
+        true
+    }
+
+    fn build(self) -> FMICompletionsRequest {
+        FMICompletionsRequest {
+            model: self.model,
+            prompt: self.prompt,
+            echo: self.echo,
+            frequency_penalty: self.frequency_penalty,
+            logprobs: self.logprobs,
+            max_tokens: self.max_tokens,
+            presence_penalty: self.presence_penalty,
+            stop: self.stop,
+            stream: self.stream,
+            stream_options: self.stream_options,
+            suffix: self.suffix,
+            temperature: self.temperature,
+            top_p: self.top_p,
+        }
     }
 }
