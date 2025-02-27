@@ -1,7 +1,7 @@
-use crate::response::{Message, ModelType};
+use crate::response::{ChatCompletion, Message, ModelType};
 use anyhow::{anyhow, Result};
 use schemars::schema::SchemaObject;
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
 /// Represents a frequency penalty with a value between -2 and 2.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -493,8 +493,9 @@ impl ToolMessageRequest {
     }
 }
 
-pub trait InToRequest {
+pub trait RequestBuilder {
     type Request: Serialize;
+    type Response: DeserializeOwned;
 
     fn is_beta(&self) -> bool;
     fn build(self) -> Self::Request;
@@ -506,20 +507,32 @@ pub struct CompletionsRequest {
     pub messages: Vec<MessageRequest>,
     pub model: ModelType,
     pub prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<MaxToken>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response_format: Option<ResponseFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<Stop>,
     pub stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_options: Option<StreamOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<Vec<ToolObject>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<ToolChoice>,
 
     // ignore when model is deepseek-reasoner
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<Temperature>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<TopP>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub presence_penalty: Option<PresencePenalty>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<FrequencyPenalty>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub logprobs: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub top_logprobs: Option<TopLogprobs>,
 }
 
@@ -683,8 +696,9 @@ impl CompletionsRequestBuilder {
     }
 }
 
-impl InToRequest for CompletionsRequestBuilder {
+impl RequestBuilder for CompletionsRequestBuilder {
     type Request = CompletionsRequest;
+    type Response = ChatCompletion;
 
     fn is_beta(&self) -> bool {
         self.beta
@@ -710,6 +724,7 @@ impl InToRequest for CompletionsRequestBuilder {
             top_logprobs: self.top_logprobs,
         }
     }
+    
 }
 
 /// Represents a request for completions.
@@ -719,15 +734,23 @@ pub struct FMICompletionsRequest {
     pub prompt: String,
     pub echo: bool,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<FrequencyPenalty>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub logprobs: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<MaxToken>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub presence_penalty: Option<PresencePenalty>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<Stop>,
     pub stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_options: Option<StreamOptions>,
     pub suffix: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<Temperature>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<TopP>,
 }
 
@@ -811,8 +834,9 @@ impl FMICompletionsRequestBuilder {
     }
 }
 
-impl InToRequest for FMICompletionsRequestBuilder {
+impl RequestBuilder for FMICompletionsRequestBuilder {
     type Request = FMICompletionsRequest;
+    type Response = ChatCompletion;
 
     fn is_beta(&self) -> bool {
         true

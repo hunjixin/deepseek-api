@@ -1,5 +1,6 @@
 pub mod completions;
 mod error;
+
 pub mod request;
 pub mod response;
 
@@ -39,7 +40,6 @@ impl Client {
             client: self.client.clone(),
             host: self.host,
             model: ModelType::DeepSeekChat,
-            messages: vec![],
         }
     }
 
