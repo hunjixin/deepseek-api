@@ -12,6 +12,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client as HttpClient, ClientBuilder};
 use response::{BalanceResp, ModelResp, ModelType};
 
+#[derive(Clone)]
 pub struct Client {
     client: HttpClient,
     host: &'static str,

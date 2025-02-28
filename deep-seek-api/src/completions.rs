@@ -2,7 +2,7 @@ use crate::{
     error::ToApiError,
     request::{
         AssistantMessageRequest, CompletionsRequestBuilder, FMICompletionsRequestBuilder,
-        RequestBuilder, MessageRequest,
+        MessageRequest, RequestBuilder,
     },
     response::ModelType,
 };
@@ -21,7 +21,7 @@ impl Completions {
         self
     }
 
-    pub fn chat_builder(&self,messages: Vec<MessageRequest>) -> CompletionsRequestBuilder {
+    pub fn chat_builder(&self, messages: Vec<MessageRequest>) -> CompletionsRequestBuilder {
         CompletionsRequestBuilder::new(messages, self.model.clone())
     }
 
@@ -50,7 +50,6 @@ impl Completions {
             .to_api_err()
             .await?
             .json()
-            .await?
-        )
+            .await?)
     }
 }

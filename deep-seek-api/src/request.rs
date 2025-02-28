@@ -340,6 +340,15 @@ impl MessageRequest {
             _ => Err(anyhow!("Invalid message role.".to_string())),
         }
     }
+
+    pub fn get_content(&self) -> String {
+        match self {
+            MessageRequest::System(req) => req.content.clone(),
+            MessageRequest::User(req) => req.content.clone(),
+            MessageRequest::Assistant(req) => req.content.clone(),
+            MessageRequest::Tool(req) => req.content.clone(),
+        }
+    }
 }
 
 /// Represents a system message request.
@@ -724,7 +733,6 @@ impl RequestBuilder for CompletionsRequestBuilder {
             top_logprobs: self.top_logprobs,
         }
     }
-    
 }
 
 /// Represents a request for completions.
