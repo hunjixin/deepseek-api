@@ -1,16 +1,15 @@
 use crate::{
     error::ToApiError,
     request::{
-        AssistantMessageRequest, CompletionsRequestBuilder, FMICompletionsRequestBuilder,
-        MessageRequest, RequestBuilder,
+        CompletionsRequestBuilder, FMICompletionsRequestBuilder, MessageRequest, RequestBuilder,
     },
     response::ModelType,
 };
 use anyhow::Result;
-use reqwest::Client as HttpClient;
+use reqwest_middleware::ClientWithMiddleware;
 
 pub struct Completions {
-    pub(crate) client: HttpClient,
+    pub(crate) client: ClientWithMiddleware,
     pub(crate) host: &'static str,
     pub(crate) model: ModelType,
 }

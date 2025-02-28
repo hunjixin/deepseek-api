@@ -36,7 +36,6 @@ fn main() -> Result<()> {
         client,
         runtime,
         history: vec![],
-        show: vec![],
         input: Input::default(),
         list_state: ListState::default(),
     };
@@ -57,8 +56,6 @@ struct App {
     runtime: Runtime,
     history: Vec<MessageRequest>,
     input: Input,
-
-    show: Vec<ListItem<'static>>,
     list_state: ListState,
 }
 
@@ -154,7 +151,6 @@ fn ui(f: &mut Frame, app: &mut App) {
             ListItem::new(text)
         })
         .collect();
-    app.show = list_items.clone();
 
     let list = List::new(list_items.clone())
         .highlight_style(Style::default().bg(Color::Indexed(237)))
