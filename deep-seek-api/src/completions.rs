@@ -6,10 +6,9 @@ use crate::{
     response::ModelType,
 };
 use anyhow::Result;
-use reqwest_middleware::ClientWithMiddleware;
-
+use reqwest::{ClientBuilder, Client as ReqwestClient};
 pub struct Completions {
-    pub(crate) client: ClientWithMiddleware,
+    pub(crate) client: ReqwestClient,
     pub(crate) host: &'static str,
     pub(crate) model: ModelType,
 }

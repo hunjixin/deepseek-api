@@ -502,6 +502,12 @@ impl ToolMessageRequest {
     }
 }
 
+/*
+pub enum HttpResponse<T> {
+    Full(T),
+    Stream(JsonStream<T>),
+}
+     */
 pub trait RequestBuilder {
     type Request: Serialize;
     type Response: DeserializeOwned;
@@ -586,8 +592,6 @@ pub struct CompletionsRequestBuilder {
     max_tokens: Option<MaxToken>,
     response_format: Option<ResponseFormat>,
     stop: Option<Stop>,
-    stream: bool,
-    stream_options: Option<StreamOptions>,
     tools: Option<Vec<ToolObject>>,
     tool_choice: Option<ToolChoice>,
     prompt: String,
@@ -604,7 +608,6 @@ impl CompletionsRequestBuilder {
         Self {
             messages,
             model,
-            stream: false,
             prompt: String::new(),
             ..Default::default()
         }
@@ -646,16 +649,6 @@ impl CompletionsRequestBuilder {
 
     pub fn stop(mut self, value: Stop) -> Self {
         self.stop = Some(value);
-        self
-    }
-
-    pub fn stream(mut self, value: bool) -> Self {
-        self.stream = value;
-        self
-    }
-
-    pub fn stream_options(mut self, value: StreamOptions) -> Self {
-        self.stream_options = Some(value);
         self
     }
 
@@ -720,8 +713,8 @@ impl RequestBuilder for CompletionsRequestBuilder {
             max_tokens: self.max_tokens,
             response_format: self.response_format,
             stop: self.stop,
-            stream: self.stream,
-            stream_options: self.stream_options,
+            stream: false,
+            stream_options: None,
             tools: self.tools,
             tool_choice: self.tool_choice,
             prompt: self.prompt,

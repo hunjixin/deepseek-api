@@ -1,6 +1,7 @@
 pub mod completions;
 mod error;
 
+mod json_stream;
 pub mod request;
 pub mod response;
 
@@ -9,15 +10,12 @@ pub use error::*;
 
 use completions::Completions;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::ClientBuilder;
-use reqwest_middleware::{ClientBuilder as RetryClientBuilder, ClientWithMiddleware};
-use reqwest_retry::policies::ExponentialBackoff;
-use reqwest_retry::RetryTransientMiddleware;
+use reqwest::{ClientBuilder, Client as ReqwestClient};
 use response::{BalanceResp, ModelResp, ModelType};
 
 #[derive(Clone)]
 pub struct Client {
-    client: ClientWithMiddleware,
+    client: ReqwestClient,
     host: &'static str,
 }
 
@@ -30,16 +28,10 @@ impl Client {
             HeaderValue::from_str(&bearer).expect("bearer"),
         );
 
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
         let client = ClientBuilder::new()
             .default_headers(headers)
             .build()
             .expect("Client::new()");
-
-        let client = RetryClientBuilder::new(client)
-            // Retry failed requests.
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .build();
 
         Client {
             client: client,
