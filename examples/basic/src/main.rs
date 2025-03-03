@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
             word => {
                 let mut completions = client.completions().set_model(ModelType::DeepSeekChat);
                 let builder = completions.chat_builder(vec![]).append_user_message(word);
-                let resp = completions.create(builder).await?;
+                let resp = completions.create(builder).await?.must_response();
 
                 let mut resp_words = vec![];
                 for msg in resp.choices.iter() {

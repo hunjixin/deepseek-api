@@ -1,12 +1,13 @@
 use crate::{
     error::ToApiError,
+    json_stream::JsonStream,
     request::{
         CompletionsRequestBuilder, FMICompletionsRequestBuilder, MessageRequest, RequestBuilder,
     },
-    response::ModelType,
+    response::{ChatResponse, ModelType},
 };
 use anyhow::Result;
-use reqwest::{ClientBuilder, Client as ReqwestClient};
+use reqwest::Client as ReqwestClient;
 pub struct Completions {
     pub(crate) client: ReqwestClient,
     pub(crate) host: &'static str,
@@ -27,27 +28,34 @@ impl Completions {
         FMICompletionsRequestBuilder::new(self.model.clone(), prompt, suffix)
     }
 
-    pub async fn create<Builder>(&mut self, request_builder: Builder) -> Result<Builder::Response>
+    pub async fn create<Builder>(
+        &mut self,
+        request_builder: Builder,
+    ) -> Result<ChatResponse<Builder::Response, Builder::Item>>
     where
-        Builder: RequestBuilder,
+        Builder: RequestBuilder + Send,
     {
         let host = if request_builder.is_beta() {
             self.host.to_owned() + "/beta/completions"
         } else {
             self.host.to_owned() + "/chat/completions"
         };
+        let is_stream = request_builder.is_stream();
 
         let request = request_builder.build();
-
-        Ok(self
+        let resp = self
             .client
             .post(&host)
             .json(&request)
             .send()
             .await?
             .to_api_err()
-            .await?
-            .json()
-            .await?)
+            .await?;
+
+        if is_stream {
+            Ok(ChatResponse::Full(resp.json().await?))
+        } else {
+            Ok(ChatResponse::Stream(JsonStream::new(resp)))
+        }
     }
 }

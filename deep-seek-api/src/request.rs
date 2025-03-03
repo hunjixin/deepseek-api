@@ -1,4 +1,4 @@
-use crate::response::{ChatCompletion, Message, ModelType};
+use crate::response::{ChatCompletion, ChatCompletionStream, Message, ModelType};
 use anyhow::{anyhow, Result};
 use schemars::schema::SchemaObject;
 use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -502,17 +502,13 @@ impl ToolMessageRequest {
     }
 }
 
-/*
-pub enum HttpResponse<T> {
-    Full(T),
-    Stream(JsonStream<T>),
-}
-     */
 pub trait RequestBuilder {
     type Request: Serialize;
     type Response: DeserializeOwned;
+    type Item: DeserializeOwned + Send + 'static;
 
     fn is_beta(&self) -> bool;
+    fn is_stream(&self) -> bool;
     fn build(self) -> Self::Request;
 }
 
@@ -589,6 +585,9 @@ pub struct CompletionsRequestBuilder {
     messages: Vec<MessageRequest>,
     model: ModelType,
 
+    stream: bool,
+    stream_options: Option<StreamOptions>,
+
     max_tokens: Option<MaxToken>,
     response_format: Option<ResponseFormat>,
     stop: Option<Stop>,
@@ -639,6 +638,16 @@ impl CompletionsRequestBuilder {
 
     pub fn use_beta(mut self, value: bool) -> Self {
         self.beta = value;
+        self
+    }
+
+    pub fn stream(mut self, value: bool) -> Self {
+        self.stream = value;
+        self
+    }
+
+    pub fn stream_options(mut self, value: StreamOptions) -> Self {
+        self.stream_options = Some(value);
         self
     }
 
@@ -701,9 +710,14 @@ impl CompletionsRequestBuilder {
 impl RequestBuilder for CompletionsRequestBuilder {
     type Request = CompletionsRequest;
     type Response = ChatCompletion;
+    type Item = ChatCompletionStream;
 
     fn is_beta(&self) -> bool {
         self.beta
+    }
+
+    fn is_stream(&self) -> bool {
+        self.stream
     }
 
     fn build(self) -> CompletionsRequest {
@@ -838,9 +852,14 @@ impl FMICompletionsRequestBuilder {
 impl RequestBuilder for FMICompletionsRequestBuilder {
     type Request = FMICompletionsRequest;
     type Response = ChatCompletion;
+    type Item = ChatCompletionStream;
 
     fn is_beta(&self) -> bool {
         true
+    }
+
+    fn is_stream(&self) -> bool {
+        self.stream
     }
 
     fn build(self) -> FMICompletionsRequest {

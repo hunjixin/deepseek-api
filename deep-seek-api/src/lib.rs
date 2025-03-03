@@ -1,7 +1,9 @@
+#![feature(trait_alias)]
+
 pub mod completions;
 mod error;
 
-mod json_stream;
+pub mod json_stream;
 pub mod request;
 pub mod response;
 
@@ -10,7 +12,7 @@ pub use error::*;
 
 use completions::Completions;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{ClientBuilder, Client as ReqwestClient};
+use reqwest::{Client as ReqwestClient, ClientBuilder};
 use response::{BalanceResp, ModelResp, ModelType};
 
 #[derive(Clone)]

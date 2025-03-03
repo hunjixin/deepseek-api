@@ -1383,11 +1383,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-stream",
+ "bytes",
  "futures-util",
+ "http",
  "reqwest",
  "schemars",
  "serde",
  "serde_json",
+ "tokio",
  "tokio-stream",
  "tokio-util",
 ]

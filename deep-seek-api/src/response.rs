@@ -1,6 +1,8 @@
 use schemars::schema::SchemaObject;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt;
+
+use crate::json_stream::JsonStream;
 
 /// Represents different types of models available in the deep seek.
 #[derive(Default, Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -279,7 +281,7 @@ pub struct ChoiceStream {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatCompletionStream {
     /// Unique identifier for the chat completion stream.
-    pub id: String,
+    pub id: Option<String>,
     /// List of choice streams made during the chat completion stream.
     pub choices: Vec<ChoiceStream>,
     /// Timestamp of when the chat completion stream was created.
@@ -290,4 +292,34 @@ pub struct ChatCompletionStream {
     pub system_fingerprint: String,
     /// Type of the object.
     pub object: String,
+}
+
+pub enum ChatResponse<RESP, ITEM>
+where
+    RESP: DeserializeOwned,
+    ITEM: DeserializeOwned,
+{
+    Full(RESP),
+    Stream(JsonStream<ITEM>),
+}
+
+impl<RESP, ITEM> ChatResponse<RESP, ITEM>
+where
+    RESP: DeserializeOwned,
+    ITEM: DeserializeOwned,
+{
+    pub fn must_response(self) -> RESP {
+        match self {
+            ChatResponse::Full(resp) => resp,
+            ChatResponse::Stream(_) => panic!("Expected Full variant, found Stream"),
+        }
+    }
+
+    /// 返回 `Stream` 变体中的 `JsonStream<ITEM>` 值，如果当前是 `Full` 变体则 panic
+    pub fn must_stream(self) -> JsonStream<ITEM> {
+        match self {
+            ChatResponse::Stream(stream) => stream,
+            ChatResponse::Full(_) => panic!("Expected Stream variant, found Full"),
+        }
+    }
 }
