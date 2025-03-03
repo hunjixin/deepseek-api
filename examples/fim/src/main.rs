@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
     let builder = completions
         .fim_builder("def fib(a):", "    return fib(a-1) + fib(a-2)")
         .max_tokens(MaxToken::new(128)?);
-    let resp = completions.create(builder).await?;
+    let resp = completions.create(builder).await?.must_response();
     println!(
         "resp {:?}",
         resp.choices

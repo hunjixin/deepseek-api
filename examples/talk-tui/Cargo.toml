@@ -1,5 +1,5 @@
 [package]
-name = "talk_tui"
+name = "talk-tui"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,4 +1,4 @@
-use crate::response::{ChatCompletion, Message, ModelType};
+use crate::response::{ChatCompletion, ChatCompletionStream, Message, ModelType};
 use anyhow::{anyhow, Result};
 use schemars::schema::SchemaObject;
 use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -505,8 +505,10 @@ impl ToolMessageRequest {
 pub trait RequestBuilder {
     type Request: Serialize;
     type Response: DeserializeOwned;
+    type Item: DeserializeOwned + Send + 'static;
 
     fn is_beta(&self) -> bool;
+    fn is_stream(&self) -> bool;
     fn build(self) -> Self::Request;
 }
 
@@ -583,11 +585,12 @@ pub struct CompletionsRequestBuilder {
     messages: Vec<MessageRequest>,
     model: ModelType,
 
+    stream: bool,
+    stream_options: Option<StreamOptions>,
+
     max_tokens: Option<MaxToken>,
     response_format: Option<ResponseFormat>,
     stop: Option<Stop>,
-    stream: bool,
-    stream_options: Option<StreamOptions>,
     tools: Option<Vec<ToolObject>>,
     tool_choice: Option<ToolChoice>,
     prompt: String,
@@ -604,7 +607,6 @@ impl CompletionsRequestBuilder {
         Self {
             messages,
             model,
-            stream: false,
             prompt: String::new(),
             ..Default::default()
         }
@@ -639,16 +641,6 @@ impl CompletionsRequestBuilder {
         self
     }
 
-    pub fn response_format(mut self, value: ResponseFormat) -> Self {
-        self.response_format = Some(value);
-        self
-    }
-
-    pub fn stop(mut self, value: Stop) -> Self {
-        self.stop = Some(value);
-        self
-    }
-
     pub fn stream(mut self, value: bool) -> Self {
         self.stream = value;
         self
@@ -656,6 +648,16 @@ impl CompletionsRequestBuilder {
 
     pub fn stream_options(mut self, value: StreamOptions) -> Self {
         self.stream_options = Some(value);
+        self
+    }
+
+    pub fn response_format(mut self, value: ResponseFormat) -> Self {
+        self.response_format = Some(value);
+        self
+    }
+
+    pub fn stop(mut self, value: Stop) -> Self {
+        self.stop = Some(value);
         self
     }
 
@@ -708,9 +710,14 @@ impl CompletionsRequestBuilder {
 impl RequestBuilder for CompletionsRequestBuilder {
     type Request = CompletionsRequest;
     type Response = ChatCompletion;
+    type Item = ChatCompletionStream;
 
     fn is_beta(&self) -> bool {
         self.beta
+    }
+
+    fn is_stream(&self) -> bool {
+        self.stream
     }
 
     fn build(self) -> CompletionsRequest {
@@ -720,8 +727,8 @@ impl RequestBuilder for CompletionsRequestBuilder {
             max_tokens: self.max_tokens,
             response_format: self.response_format,
             stop: self.stop,
-            stream: self.stream,
-            stream_options: self.stream_options,
+            stream: false,
+            stream_options: None,
             tools: self.tools,
             tool_choice: self.tool_choice,
             prompt: self.prompt,
@@ -845,9 +852,14 @@ impl FMICompletionsRequestBuilder {
 impl RequestBuilder for FMICompletionsRequestBuilder {
     type Request = FMICompletionsRequest;
     type Response = ChatCompletion;
+    type Item = ChatCompletionStream;
 
     fn is_beta(&self) -> bool {
         true
+    }
+
+    fn is_stream(&self) -> bool {
+        self.stream
     }
 
     fn build(self) -> FMICompletionsRequest {

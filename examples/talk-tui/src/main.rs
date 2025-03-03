@@ -1,12 +1,11 @@
 use clap::Parser;
-use color_eyre::{owo_colors::colors::css::MediumSpringGreen, Result};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use color_eyre::Result;
+use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    buffer::Buffer,
-    layout::{Alignment, Constraint, Direction, Flex, Layout, Offset, Rect},
-    style::{palette::tailwind, Color, Style, Stylize},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Widget},
+    layout::{Alignment, Constraint, Direction, Layout},
+    style::{Color, Style},
+    text::Text,
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     DefaultTerminal, Frame,
 };
 use seep_seek_api::{
@@ -14,7 +13,6 @@ use seep_seek_api::{
     response::ModelType,
     Client,
 };
-use serde::Serialize;
 use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
 use tui_input::{backend::crossterm::EventHandler, Input};
@@ -92,7 +90,8 @@ impl App {
                                     completions.chat_builder(history).append_user_message(&msg);
                                 completions.create(builder).await
                             })
-                            .unwrap();
+                            .unwrap()
+                            .must_response();
 
                         for msg in resp.choices.iter() {
                             let resp_msg = MessageRequest::from_message(
@@ -161,7 +160,11 @@ fn ui(f: &mut Frame, app: &mut App) {
     let scroll = app.input.visual_scroll(width as usize);
     let input = Paragraph::new(app.input.value())
         .scroll((0, scroll as u16))
-        .block(Block::default().borders(Borders::ALL).title("Question?"));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Input Question?  Press ESC to exit"),
+        );
     f.render_widget(input, chunks[2]);
 
     f.set_cursor_position((
