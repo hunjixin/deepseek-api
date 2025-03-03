@@ -51,11 +51,10 @@ impl Completions {
             .await?
             .to_api_err()
             .await?;
-
         if is_stream {
-            Ok(ChatResponse::Full(resp.json().await?))
-        } else {
             Ok(ChatResponse::Stream(JsonStream::new(resp)))
+        } else {
+            Ok(ChatResponse::Full(resp.json().await?))
         }
     }
 }

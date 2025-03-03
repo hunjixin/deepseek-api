@@ -193,6 +193,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "chat-stream"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "seep_seek_api",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "clap"
 version = "4.5.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1619,7 +1630,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "talk_tui"
+name = "talk-tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
