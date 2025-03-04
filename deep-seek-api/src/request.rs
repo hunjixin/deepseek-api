@@ -49,7 +49,7 @@ impl PresencePenalty {
     ///
     /// Returns an error if the value is not between -2 and 2.
     pub fn new(v: f32) -> Result<Self> {
-        if v < -2.0 || v > 2.0 {
+        if !(-2.0..=2.0).contains(&v) {
             return Err(anyhow!(
                 "Presence penalty value must be between -2 and 2.".to_string()
             ));
@@ -107,7 +107,7 @@ impl MaxToken {
     ///
     /// Returns an error if the value is not between 1 and 8192.
     pub fn new(v: u32) -> Result<Self> {
-        if v < 1 || v > 8192 {
+        if !(1..=8192).contains(&v) {
             return Err(anyhow!("Max token must be between 1 and 8192.".to_string()));
         }
         Ok(MaxToken(v))
@@ -189,7 +189,7 @@ impl TopP {
     ///
     /// Returns an error if the value is not between 0.0 and 1.0.
     pub fn new(v: f32) -> Result<Self> {
-        if v < 0.0 || v > 1.0 {
+        if !(0.0..=1.0).contains(&v) {
             return Err(anyhow!("TopP value must be between 0and 2.".to_string()));
         }
         Ok(TopP(v))

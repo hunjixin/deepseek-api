@@ -7,33 +7,27 @@ use std::{
     task::{Context as TaskContext, Poll},
 };
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio_stream::wrappers::LinesStream;
-use tokio_util::io::StreamReader; // 适配 `Lines` 使其实现 `Stream`
-
-/// 流式 SSE JSON 解析器
+use tokio_stream::{wrappers::LinesStream, StreamExt};
+use tokio_util::io::StreamReader;
 pub struct JsonStream<T> {
     inner: Pin<Box<dyn Stream<Item = Result<T, anyhow::Error>> + Send>>,
 }
 
 impl<T: DeserializeOwned + Send + 'static> JsonStream<T> {
     pub fn new(response: Response) -> Self {
-        // 将响应体转换为字节流
         let byte_stream = response
             .bytes_stream()
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-
-        // 将字节流转换为异步读取器
         let async_reader = StreamReader::new(byte_stream);
 
-        // 创建带缓冲的逐行读取器，并转换为 `Stream`
         let line_stream = LinesStream::new(BufReader::new(async_reader).lines());
 
-        // 处理 SSE 格式
         let processed_stream = line_stream
             .map_ok(|line| line.trim().to_string())
             .map_err(anyhow::Error::from) // 将 std::io::Error 转换为 anyhow::Error
+            .take_while(|line| line.as_ref().is_ok_and(|data| data != "data: [DONE]")) // 遇到 "data: [DONE]" 终止流
             .try_filter_map(|line| async move {
-                if line.is_empty() || line == "data: [DONE]" {
+                if line.is_empty() {
                     return Ok(None);
                 }
 
@@ -74,15 +68,13 @@ mod tests {
         id: String,
         value: u32,
     }
-    // 修改后的 mock_response 实现
+
     fn mock_response(data: Vec<Result<Bytes, reqwest::Error>>) -> Response {
-        // 创建 reqwest 兼容的 Body 类型
         let body = reqwest::Body::wrap_stream(stream::iter(data));
         let http_response = http::response::Response::builder()
             .status(StatusCode::OK)
             .body(body)
             .unwrap();
-        // 直接构建 reqwest::Response
         Response::from(http_response)
     }
 
