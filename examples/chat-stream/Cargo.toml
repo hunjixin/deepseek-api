@@ -1,0 +1,11 @@
+[package]
+name = "chat-stream"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow="1.0.95"
+seep_seek_api = {path="../../deep-seek-api"}
+clap = { version = "4.1.11", features = ["derive"] }
+tokio = { version = "1.43.0", features = ["full"] }
+tokio-stream = {version = "0.1.17", features = ["io-util"]}

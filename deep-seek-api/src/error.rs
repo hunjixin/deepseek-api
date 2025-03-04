@@ -2,6 +2,7 @@ use std::fmt;
 
 use reqwest::Response;
 
+#[derive(Debug)]
 pub enum ApiError {
     Unknown(String),
     BadRequest(String),
@@ -25,12 +26,6 @@ impl fmt::Display for ApiError {
             ApiError::ServiceUnavailable(msg) => format!("Service Unavailable: {}", msg),
         };
         write!(f, "{}", description)
-    }
-}
-
-impl fmt::Debug for ApiError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} (Code: {:?})", self, self)
     }
 }
 

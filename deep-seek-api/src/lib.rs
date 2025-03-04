@@ -36,7 +36,7 @@ impl Client {
             .expect("Client::new()");
 
         Client {
-            client: client,
+            client,
             host: "https://api.deepseek.com",
         }
     }

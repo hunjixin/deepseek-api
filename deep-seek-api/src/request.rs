@@ -1,5 +1,5 @@
 use crate::response::{ChatCompletion, ChatCompletionStream, Message, ModelType};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 use schemars::schema::SchemaObject;
 use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
@@ -18,7 +18,7 @@ impl FrequencyPenalty {
     ///
     /// Returns an error if the value is not between -2 and 2.
     pub fn new(v: f32) -> Result<Self> {
-        if v < -2.0 || v > 2.0 {
+        if !(-2.0..=2.0).contains(&v) {
             return Err(anyhow!(
                 "Frequency penalty value must be between -2 and 2.".to_string()
             ));
@@ -631,9 +631,9 @@ impl CompletionsRequestBuilder {
         self
     }
 
-    pub fn max_tokens(mut self, value: MaxToken) -> Self {
-        self.max_tokens = Some(value);
-        self
+    pub fn max_tokens(mut self, value: u32) -> Result<Self> {
+        self.max_tokens = Some(MaxToken::new(value)?);
+        Ok(self)
     }
 
     pub fn use_beta(mut self, value: bool) -> Self {
@@ -676,24 +676,24 @@ impl CompletionsRequestBuilder {
         self
     }
 
-    pub fn temperature(mut self, value: Temperature) -> Self {
-        self.temperature = Some(value);
-        self
+    pub fn temperature(mut self, value: u32) -> Result<Self> {
+        self.temperature = Some(Temperature::new(value)?);
+        Ok(self)
     }
 
-    pub fn top_p(mut self, value: TopP) -> Self {
-        self.top_p = Some(value);
-        self
+    pub fn top_p(mut self, value: f32) -> Result<Self> {
+        self.top_p = Some(TopP::new(value)?);
+        Ok(self)
     }
 
-    pub fn presence_penalty(mut self, value: PresencePenalty) -> Self {
-        self.presence_penalty = Some(value);
-        self
+    pub fn presence_penalty(mut self, value: f32) -> Result<Self> {
+        self.presence_penalty = Some(PresencePenalty::new(value)?);
+        Ok(self)
     }
 
-    pub fn frequency_penalty(mut self, value: FrequencyPenalty) -> Self {
-        self.frequency_penalty = Some(value);
-        self
+    pub fn frequency_penalty(mut self, value: f32) -> Result<Self> {
+        self.frequency_penalty = Some(FrequencyPenalty::new(value)?);
+        Ok(self)
     }
 
     pub fn logprobs(mut self, value: bool) -> Self {
@@ -701,9 +701,9 @@ impl CompletionsRequestBuilder {
         self
     }
 
-    pub fn top_logprobs(mut self, value: TopLogprobs) -> Self {
-        self.top_logprobs = Some(value);
-        self
+    pub fn top_logprobs(mut self, value: u32) -> Result<Self> {
+        self.top_logprobs = Some(TopLogprobs::new(value)?);
+        Ok(self)
     }
 }
 
@@ -803,9 +803,9 @@ impl FMICompletionsRequestBuilder {
         self
     }
 
-    pub fn frequency_penalty(mut self, value: FrequencyPenalty) -> Self {
-        self.frequency_penalty = Some(value);
-        self
+    pub fn frequency_penalty(mut self, value: f32) -> Result<Self> {
+        self.frequency_penalty = Some(FrequencyPenalty::new(value)?);
+        Ok(self)
     }
 
     pub fn logprobs(mut self, value: bool) -> Self {
@@ -813,14 +813,14 @@ impl FMICompletionsRequestBuilder {
         self
     }
 
-    pub fn max_tokens(mut self, value: MaxToken) -> Self {
-        self.max_tokens = Some(value);
-        self
+    pub fn max_tokens(mut self, value: u32) -> Result<Self> {
+        self.max_tokens = Some(MaxToken::new(value)?);
+        Ok(self)
     }
 
-    pub fn presence_penalty(mut self, value: PresencePenalty) -> Self {
-        self.presence_penalty = Some(value);
-        self
+    pub fn presence_penalty(mut self, value: f32) -> Result<Self> {
+        self.presence_penalty = Some(PresencePenalty::new(value)?);
+        Ok(self)
     }
 
     pub fn stop(mut self, value: Stop) -> Self {
@@ -838,14 +838,14 @@ impl FMICompletionsRequestBuilder {
         self
     }
 
-    pub fn temperature(mut self, value: Temperature) -> Self {
-        self.temperature = Some(value);
-        self
+    pub fn temperature(mut self, value: u32) -> Result<Self> {
+        self.temperature = Some(Temperature::new(value)?);
+        Ok(self)
     }
 
-    pub fn top_p(mut self, value: TopP) -> Self {
-        self.top_p = Some(value);
-        self
+    pub fn top_p(mut self, value: f32) -> Result<Self> {
+        self.top_p = Some(TopP::new(value)?);
+        Ok(self)
     }
 }
 
