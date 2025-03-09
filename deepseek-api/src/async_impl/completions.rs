@@ -1,6 +1,5 @@
+use super::json_stream::JsonStream;
 use crate::{
-    error::ToApiError,
-    json_stream::JsonStream,
     request::{
         CompletionsRequestBuilder, FMICompletionsRequestBuilder, MessageRequest, RequestBuilder,
     },
@@ -8,6 +7,8 @@ use crate::{
 };
 use anyhow::Result;
 use reqwest::Client as ReqwestClient;
+
+use super::error::ToApiError;
 pub struct ChatCompletions {
     pub(crate) client: ReqwestClient,
     pub(crate) host: &'static str,
