@@ -8,13 +8,13 @@ use crate::{
 };
 use anyhow::Result;
 use reqwest::Client as ReqwestClient;
-pub struct Completions {
+pub struct ChatCompletions {
     pub(crate) client: ReqwestClient,
     pub(crate) host: &'static str,
     pub(crate) model: ModelType,
 }
 
-impl Completions {
+impl ChatCompletions {
     pub fn set_model(mut self, model: ModelType) -> Self {
         self.model = model;
         self

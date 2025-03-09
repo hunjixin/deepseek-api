@@ -85,7 +85,7 @@ impl App {
                             .runtime
                             .block_on(async move {
                                 let mut completions =
-                                    client.completions().set_model(ModelType::DeepSeekChat);
+                                    client.chat().set_model(ModelType::DeepSeekChat);
                                 let builder =
                                     completions.chat_builder(history).append_user_message(&msg);
                                 completions.create(builder).await

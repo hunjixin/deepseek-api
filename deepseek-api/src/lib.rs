@@ -10,7 +10,7 @@ pub mod response;
 use anyhow::Result;
 pub use error::*;
 
-use completions::Completions;
+use completions::ChatCompletions;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client as ReqwestClient, ClientBuilder};
 use response::{BalanceResp, ModelResp, ModelType};
@@ -41,8 +41,8 @@ impl Client {
         }
     }
 
-    pub fn completions(&self) -> Completions {
-        Completions {
+    pub fn chat(&self) -> ChatCompletions {
+        ChatCompletions {
             client: self.client.clone(),
             host: self.host,
             model: ModelType::DeepSeekChat,
