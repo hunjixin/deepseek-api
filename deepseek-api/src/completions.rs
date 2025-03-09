@@ -4,28 +4,22 @@ use crate::{
     request::{
         CompletionsRequestBuilder, FMICompletionsRequestBuilder, MessageRequest, RequestBuilder,
     },
-    response::{ChatResponse, ModelType},
+    response::ChatResponse,
 };
 use anyhow::Result;
 use reqwest::Client as ReqwestClient;
 pub struct ChatCompletions {
     pub(crate) client: ReqwestClient,
     pub(crate) host: &'static str,
-    pub(crate) model: ModelType,
 }
 
 impl ChatCompletions {
-    pub fn set_model(mut self, model: ModelType) -> Self {
-        self.model = model;
-        self
-    }
-
     pub fn chat_builder(&self, messages: Vec<MessageRequest>) -> CompletionsRequestBuilder {
-        CompletionsRequestBuilder::new(messages, self.model.clone())
+        CompletionsRequestBuilder::new(messages)
     }
 
     pub fn fim_builder(&self, prompt: &str, suffix: &str) -> FMICompletionsRequestBuilder {
-        FMICompletionsRequestBuilder::new(self.model.clone(), prompt, suffix)
+        FMICompletionsRequestBuilder::new(prompt, suffix)
     }
 
     pub async fn create<Builder>(

@@ -3,7 +3,6 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode};
 use deepseek_api::{
     request::{MessageRequest, UserMessageRequest},
-    response::ModelType,
     Client,
 };
 use ratatui::{
@@ -84,8 +83,7 @@ impl App {
                         let resp = self
                             .runtime
                             .block_on(async move {
-                                let mut completions =
-                                    client.chat().set_model(ModelType::DeepSeekChat);
+                                let mut completions = client.chat();
                                 let builder =
                                     completions.chat_builder(history).append_user_message(&msg);
                                 completions.create(builder).await
