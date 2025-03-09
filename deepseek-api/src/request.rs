@@ -603,13 +603,17 @@ pub struct CompletionsRequestBuilder {
 }
 
 impl CompletionsRequestBuilder {
-    pub fn new(messages: Vec<MessageRequest>, model: ModelType) -> Self {
+    pub fn new(messages: Vec<MessageRequest>) -> Self {
         Self {
             messages,
-            model,
+            model: ModelType::DeepSeekChat,
             prompt: String::new(),
             ..Default::default()
         }
+    }
+    pub fn use_model(mut self, model: ModelType) -> Self {
+        self.model = model;
+        self
     }
 
     //https://api-docs.deepseek.com/guides/fim_completion
@@ -787,15 +791,20 @@ pub struct FMICompletionsRequestBuilder {
 }
 
 impl FMICompletionsRequestBuilder {
-    pub fn new(model: ModelType, prompt: &str, suffix: &str) -> Self {
+    pub fn new(prompt: &str, suffix: &str) -> Self {
         Self {
-            model,
+            model: ModelType::DeepSeekChat,
             prompt: prompt.to_string(),
             suffix: suffix.to_string(),
             echo: false,
             stream: false,
             ..Default::default()
         }
+    }
+
+    pub fn use_model(mut self, model: ModelType) -> Self {
+        self.model = model;
+        self
     }
 
     pub fn echo(mut self, value: bool) -> Self {

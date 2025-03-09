@@ -9,6 +9,56 @@ use std::{
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_stream::{wrappers::LinesStream, StreamExt};
 use tokio_util::io::StreamReader;
+
+/// A stream that processes Server-Sent Events (SSE) and deserializes JSON data.
+///
+/// The `JsonStream` struct wraps an asynchronous stream of lines from an HTTP response,
+/// where each line is expected to be a JSON object prefixed with "data: ". The stream
+/// terminates when it encounters a line with "data: [DONE]".
+///
+/// # Type Parameters
+///
+/// * `T`: The type of the deserialized JSON objects. It must implement `DeserializeOwned` and `Send`.
+///
+/// # Examples
+///
+/// ```rust
+/// use reqwest::Response;
+/// use serde::Deserialize;
+/// use tokio_stream::StreamExt;
+/// use deepseek_api::json_stream::JsonStream;
+///
+/// #[derive(Debug, Deserialize)]
+/// struct MyData {
+///     id: String,
+///     value: u32,
+/// }
+///
+/// async fn process_response(response: Response) {
+///     let mut stream = JsonStream::<MyData>::new(response);
+///
+///     while let Some(item) = stream.next().await {
+///         match item {
+///             Ok(data) => println!("{:?}", data),
+///             Err(e) => eprintln!("Error: {:?}", e),
+///         }
+///     }
+/// }
+/// ```
+///
+/// # Errors
+///
+/// The stream yields `anyhow::Error` if:
+/// - The line does not start with "data: "
+/// - The JSON deserialization fails
+///
+/// # Methods
+///
+/// * `new(response: Response) -> Self`: Creates a new `JsonStream` from an HTTP response.
+///
+/// # Trait Implementations
+///
+/// * `Stream` for `JsonStream<T>`: Allows the `JsonStream` to be used as a stream of `Result<T, anyhow::Error>`.
 pub struct JsonStream<T> {
     inner: Pin<Box<dyn Stream<Item = Result<T, anyhow::Error>> + Send>>,
 }
