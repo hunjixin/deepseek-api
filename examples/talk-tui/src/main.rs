@@ -1,17 +1,17 @@
 use clap::Parser;
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode};
+use deepseek_api::{
+    request::{MessageRequest, UserMessageRequest},
+    response::ModelType,
+    Client,
+};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     text::Text,
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     DefaultTerminal, Frame,
-};
-use seep_seek_api::{
-    request::{MessageRequest, UserMessageRequest},
-    response::ModelType,
-    Client,
 };
 use tokio::runtime::Builder;
 use tokio::runtime::Runtime;

@@ -140,7 +140,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "seep_seek_api",
+ "deepseek-api",
  "tokio",
 ]
 
@@ -198,7 +198,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "seep_seek_api",
+ "deepseek-api",
  "tokio",
  "tokio-stream",
 ]
@@ -367,6 +367,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "deepseek-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "bytes",
+ "futures-util",
+ "http",
+ "reqwest",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -436,7 +454,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "seep_seek_api",
+ "deepseek-api",
  "tokio",
 ]
 
@@ -1389,24 +1407,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "seep_seek_api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-stream",
- "bytes",
- "futures-util",
- "http",
- "reqwest",
- "schemars",
- "serde",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tokio-util",
-]
-
-[[package]]
 name = "serde"
 version = "1.0.218"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1637,8 +1637,8 @@ dependencies = [
  "clap",
  "color-eyre",
  "crossterm",
+ "deepseek-api",
  "ratatui",
- "seep_seek_api",
  "serde",
  "serde_json",
  "tokio",

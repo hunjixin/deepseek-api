@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use seep_seek_api::Client;
-use seep_seek_api::response::ModelType;
+use deepseek_api::Client;
+use deepseek_api::response::ModelType;
 use tokio_stream::StreamExt;
 
 #[derive(Parser, Debug)]

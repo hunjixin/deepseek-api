@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use seep_seek_api::Client;
-use seep_seek_api::{request::MessageRequest, response::ModelType};
+use deepseek_api::Client;
+use deepseek_api::{request::MessageRequest, response::ModelType};
 use std::io::{stdin, stdout, Write};
 use std::vec;
 

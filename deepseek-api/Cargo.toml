@@ -1,5 +1,5 @@
 [package]
-name = "seep_seek_api"
+name = "deepseek-api"
 version = "0.1.0"
 edition = "2021"
 
