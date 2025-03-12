@@ -5,21 +5,33 @@ edition = "2021"
 
 [dependencies]
 cfg-if = "1.0"
-serde = {version = "1.0.218", features = ["derive"]}
+serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139"
-anyhow="1.0.95"
-reqwest = {version="0.12.12", features = ["json", "stream", "blocking"]}
+anyhow = "1.0.95"
 schemars = "0.8.21"
-tokio = { version = "1.43.0", features = ["full"] }
-tokio-stream = {version = "0.1.17", features = ["io-util"]}
-async-stream = "0.3.6"
-tokio-util = {version = "0.7.13", features=["io-util"]}
-futures-util = "0.3.31"
+
+reqwest = { version = "0.12.12", features = ["json", "stream"], optional = true }
+tokio = { version = "1.43.0", features = ["full"], optional = true }
+tokio-stream = { version = "0.1.17", features = ["io-util"], optional = true }
+async-stream = { version = "0.3.6", optional = true }
+tokio-util = { version = "0.7.13", features = ["io-util"], optional = true }
+futures-util = { version = "0.3.31", optional = true }
 
 [dev-dependencies]
 bytes = "1.0.0"
 http = "1.2.0"
 
 [features]
-default = []
-is_sync = [ ]
+default = ["is_async"]
+is_async = [
+    "reqwest",         
+    "tokio",
+    "tokio-stream",
+    "async-stream",
+    "tokio-util",
+    "futures-util"
+]
+
+is_sync = [
+    "reqwest/blocking"
+]

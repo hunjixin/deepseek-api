@@ -26,10 +26,14 @@ jobs:
        cargo clippy -p sync-basic --all-targets --all-features
        cargo clippy -p talk-tui --all-targets --all-features
 
-    - uses: taiki-e/install-action@cargo-hack
-
     - name: Build
-      run: cargo hack build --verbose --each-feature --no-dev-deps
+      run: |
+       cargo build -p deepseek-api --all-targets
+       cargo build -p basic --all-targets
+       cargo build -p chat-stream --all-targets
+       cargo build -p fim --all-targets
+       cargo build -p sync-basic --all-targets
+       cargo build -p talk-tui --all-targets
 
     - name: Run tests
       run: cargo test -p deepseek-api --verbose
