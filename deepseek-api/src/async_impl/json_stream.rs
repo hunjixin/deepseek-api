@@ -77,7 +77,7 @@ impl<T: DeserializeOwned + Send + 'static> JsonStream<T> {
             .map_err(anyhow::Error::from) // 将 std::io::Error 转换为 anyhow::Error
             .take_while(|line| line.as_ref().is_ok_and(|data| data != "data: [DONE]")) // 遇到 "data: [DONE]" 终止流
             .try_filter_map(|line| async move {
-                if line.is_empty() {
+                if line.is_empty() || line == ": keep-alive" {
                     return Ok(None);
                 }
 

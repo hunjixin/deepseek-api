@@ -1,4 +1,6 @@
-use crate::response::{ChatCompletion, ChatCompletionStream, Message, ModelType};
+use crate::response::{
+    ChatCompletion, ChatCompletionStream, JSONChoiceStream, Message, ModelType, TextChoiceStream,
+};
 use anyhow::{anyhow, Ok, Result};
 use schemars::schema::SchemaObject;
 use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
@@ -714,7 +716,7 @@ impl CompletionsRequestBuilder {
 impl RequestBuilder for CompletionsRequestBuilder {
     type Request = CompletionsRequest;
     type Response = ChatCompletion;
-    type Item = ChatCompletionStream;
+    type Item = ChatCompletionStream<JSONChoiceStream>;
 
     fn is_beta(&self) -> bool {
         self.beta
@@ -731,8 +733,8 @@ impl RequestBuilder for CompletionsRequestBuilder {
             max_tokens: self.max_tokens,
             response_format: self.response_format,
             stop: self.stop,
-            stream: false,
-            stream_options: None,
+            stream: self.stream,
+            stream_options: self.stream_options,
             tools: self.tools,
             tool_choice: self.tool_choice,
             prompt: self.prompt,
@@ -861,7 +863,7 @@ impl FMICompletionsRequestBuilder {
 impl RequestBuilder for FMICompletionsRequestBuilder {
     type Request = FMICompletionsRequest;
     type Response = ChatCompletion;
-    type Item = ChatCompletionStream;
+    type Item = ChatCompletionStream<TextChoiceStream>;
 
     fn is_beta(&self) -> bool {
         true

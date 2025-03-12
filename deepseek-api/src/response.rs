@@ -261,29 +261,42 @@ pub struct Delta {
     /// Content of the delta change.
     pub content: String,
     /// Reasoning content of the delta change.
+    #[serde(default)]
     pub reasoning_content: String,
     /// Role of the delta change sender.
+    #[serde(default)]
     pub role: String,
 }
 
 /// Represents a choice stream with its associated delta change.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChoiceStream {
+pub struct JSONChoiceStream {
     /// Delta change in the choice stream.
     pub delta: Delta,
     /// Reason for finishing the choice stream.
-    pub finish_reason: FinishReason,
+    pub finish_reason: Option<FinishReason>,
+    /// Index of the choice stream.
+    pub index: usize,
+}
+
+/// Represents a choice stream with its associated delta change.
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct TextChoiceStream {
+    /// Delta change in the choice stream.
+    pub text: String,
+    /// Reason for finishing the choice stream.
+    pub finish_reason: Option<FinishReason>,
     /// Index of the choice stream.
     pub index: usize,
 }
 
 /// Represents a chat completion stream with its associated metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChatCompletionStream {
+pub struct ChatCompletionStream<T> {
     /// Unique identifier for the chat completion stream.
-    pub id: Option<String>,
+    pub id: String,
     /// List of choice streams made during the chat completion stream.
-    pub choices: Vec<ChoiceStream>,
+    pub choices: Vec<T>,
     /// Timestamp of when the chat completion stream was created.
     pub created: u32,
     /// Model used for the chat completion stream.
