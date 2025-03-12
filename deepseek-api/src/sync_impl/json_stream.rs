@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use reqwest::blocking::Response;
 use serde::de::DeserializeOwned;
 use std::{
@@ -33,16 +33,18 @@ impl<T: DeserializeOwned> Iterator for JsonStream<T> {
                     if line == "data: [DONE]" {
                         return None;
                     }
-                    if line.is_empty() {
+                    if line.is_empty() || line == ": keep-alive" {
                         continue;
                     }
                     if let Some(json_str) = line.strip_prefix("data: ") {
                         match serde_json::from_str::<T>(json_str) {
                             Ok(value) => return Some(Ok(value)),
-                            Err(err) => return Some(Err(anyhow::Error::new(err))),
+                            Err(err) => {
+                                return Some(Err(anyhow!("jsonstr: {} reason {}", json_str, err)))
+                            }
                         }
                     } else {
-                        return Some(Err(anyhow::Error::msg("Missing 'data: ' prefix")));
+                        return Some(Err(anyhow!("{} Missing 'data: ' prefix", line)));
                     }
                 }
                 Err(e) => return Some(Err(anyhow::Error::new(e))),
