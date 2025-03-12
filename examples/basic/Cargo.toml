@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 anyhow="1.0.95"
-deepseek-api = {path="../../deepseek-api", features =[]}
+deepseek-api = {path="../../deepseek-api"}
 clap = { version = "4.1.11", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["full"] }
