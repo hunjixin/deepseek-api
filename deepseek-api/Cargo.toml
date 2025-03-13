@@ -6,7 +6,7 @@ authors = ["hunjixin"]
 license = "MIT"
 description = "DeepSeek API SDK is a powerful Rust client library for interacting with the DeepSeek service"
 repository = "https://github.com/hunjixin/deepseek-api"
-readme = "README.md"
+readme = "../README.md"
 keywords = ["deepseek", "api", "rust"]
 categories = ["development-tools"]
 
