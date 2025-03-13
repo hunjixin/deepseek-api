@@ -1,7 +1,15 @@
 [package]
 name = "deepseek-api"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2021"
+authors = ["hunjixin"]
+license = "MIT"
+description = "DeepSeek API SDK is a powerful Rust client library for interacting with the DeepSeek service"
+repository = "https://github.com/hunjixin/deepseek-api"
+readme = "README.md"
+keywords = ["deepseek", "api", "rust"]
+categories = ["development-tools"]
+
 
 [dependencies]
 cfg-if = "1.0"
