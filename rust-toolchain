@@ -1,1 +1,2 @@
-nightly-2025-01-01
+[toolchain]
+channel = "1.85.0"
