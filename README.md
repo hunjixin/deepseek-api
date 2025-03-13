@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
 ```
 
 ### Synchronous Example
-use `is_sync` feature to use sync api
+use `default-features = false, features = ["is_sync"]` feature to use sync api
 ```rs
 use anyhow::Result;
 use clap::Parser;
