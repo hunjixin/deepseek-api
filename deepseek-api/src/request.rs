@@ -658,9 +658,7 @@ impl CompletionsRequestBuilder {
     }
 
     pub fn response_format(mut self, value: ResponseType) -> Self {
-        self.response_format = Some(ResponseFormat{
-            resp_type: value
-        });
+        self.response_format = Some(ResponseFormat { resp_type: value });
         self
     }
 
