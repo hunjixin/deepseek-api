@@ -1,5 +1,3 @@
-#![feature(trait_alias)]
-
 pub mod error;
 pub mod request;
 pub mod response;
