@@ -18,23 +18,10 @@ pub enum ModelType {
 }
 
 impl ModelType {
-    /// Retrieves the pricing information for the model.
-    ///
-    /// Returns a tuple containing:
-    /// - `hit_price`: Price for cache hit.
-    /// - `miss_price`: Price for cache miss.
-    /// - `output_price`: Price for output.
-    pub fn get_pricing_info(&self) -> (f32, f32, f32) {
-        match self {
-            ModelType::DeepSeekChat => (0.5, 2.0, 8.0),
-            ModelType::DeepSeekReasoner => (1.0, 4.0, 16.0),
-        }
-    }
-
     /// Retrieves the limit information for the model.
     ///
     /// Returns a tuple containing:
-    /// - `context_len`: Maximum context length.
+    /// - `context_len`: Maximum context length unit KB.
     /// - `thought_chain_len`: Optional maximum thought chain length.
     /// - `output_len`: Maximum output length.
     pub fn get_limit_info(&self) -> (u32, Option<u32>, u32) {
@@ -52,21 +39,19 @@ impl fmt::Display for ModelType {
     /// output length, and pricing information.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (context_len, thought_chain_len, output_len) = self.get_limit_info();
-        let (hit_price, miss_price, output_price) = self.get_pricing_info();
-
         match self {
             ModelType::DeepSeekChat => {
                 write!(
                     f,
-                    "DeepSeekChat: Context Length = {}K, Max Output Length = {}K, \nInput Price (Cache Hit) = {}元, Input Price (Cache Miss) = {}元, Output Price = {}元",
-                    context_len, output_len, hit_price, miss_price, output_price
+                    "DeepSeekChat: Context Length = {}K, Max Output Length = {}K",
+                    context_len, output_len
                 )
             }
             ModelType::DeepSeekReasoner => {
                 write!(
                     f,
-                    "DeepSeekReasoner: Context Length = {}K, Max Thought Chain Length = {:?}K, Max Output Length = {}K, \nInput Price (Cache Hit) = {}元, Input Price (Cache Miss) = {}元, Output Price = {}元",
-                    context_len, thought_chain_len, output_len, hit_price, miss_price, output_price
+                    "DeepSeekReasoner: Context Length = {}K, Max Thought Chain Length = {:?}K, Max Output Length = {}K",
+                    context_len, thought_chain_len, output_len
                 )
             }
         }
