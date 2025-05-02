@@ -1,4 +1,3 @@
-use schemars::schema::SchemaObject;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt;
 
@@ -21,7 +20,7 @@ impl ModelType {
     /// Retrieves the limit information for the model.
     ///
     /// Returns a tuple containing:
-    /// - `context_len`: Maximum context length unit KB.
+    /// - `context_len`: Maximum context length unit KB. 
     /// - `thought_chain_len`: Optional maximum thought chain length.
     /// - `output_len`: Maximum output length.
     pub fn get_limit_info(&self) -> (u32, Option<u32>, u32) {
@@ -105,8 +104,8 @@ pub struct BalanceResp {
 pub struct Function {
     /// Name of the function.
     pub name: String,
-    /// Parameters of the function.
-    pub parameters: SchemaObject,
+    /// Arguments of the function, its argument .
+    pub arguments: String,
 }
 
 /// Represents a tool call with its associated function.
@@ -114,23 +113,64 @@ pub struct Function {
 pub struct ToolCall {
     /// Unique identifier for the tool call.
     pub id: String,
-    /// Type of the tool call.
-    pub r#type: String,
+    #[serde(rename = "type")]
+    pub tool_type: String,
     /// Function associated with the tool call.
     pub function: Function,
 }
 
 /// Represents a message with its content and optional reasoning content and tool calls.
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Message {
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct AssistantMessage {    
     /// Content of the message.
     pub content: String,
     /// Optional reasoning content.
     pub reasoning_content: Option<String>,
     /// Optional list of tool calls.
     pub tool_calls: Option<Vec<ToolCall>>,
-    /// Role of the message sender.
-    pub role: String,
+    pub name: Option<String>,
+    #[serde(default)] 
+    pub prefix: bool
+}
+
+
+impl AssistantMessage {
+    /// Creates a new `AssistantMessage` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - A string slice representing the message content.
+    pub fn new(msg: &str) -> Self {
+        AssistantMessage {
+            content: msg.to_string(),
+            name: None,
+            prefix: false,
+            reasoning_content: None,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a new `AssistantMessage` instance with a name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A string slice representing the name.
+    /// * `msg` - A string slice representing the message content.
+    pub fn new_with_name(name: &str, msg: &str) -> Self {
+        AssistantMessage {
+            content: msg.to_string(),
+            name: Some(name.to_string()),
+            prefix: false,
+            reasoning_content: None,
+            ..Default::default()
+        }
+    }
+
+    pub fn set_prefix(mut self, content: &str) -> Self {
+        self.prefix = true;
+        self.content = content.to_string();
+        self
+    }
 }
 
 /// Enum representing the reason for finishing a process.
@@ -194,7 +234,7 @@ pub struct Choice {
     /// Message associated with the choice.
     pub text: Option<String>,
     /// Message associated with the choice.
-    pub message: Option<Message>,
+    pub message: Option<AssistantMessage>,
     /// Optional log probability information.
     pub logprobs: Option<LogProbWrap>,
 }
@@ -213,7 +253,7 @@ pub struct Usage {
     /// Total number of tokens used.
     pub total_tokens: u64,
     /// Details of completion tokens used.
-    pub completion_tokens_details: CompletionTokensDetails,
+    pub completion_tokens_details: Option<CompletionTokensDetails>,
 }
 
 /// Details of completion tokens used.
@@ -238,6 +278,7 @@ pub struct ChatCompletion {
     pub system_fingerprint: String,
     /// Type of the object.
     pub object: String,
+    pub usage: Usage,
 }
 
 /// Represents a delta change in a choice stream.

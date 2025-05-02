@@ -25,8 +25,7 @@ fn main() -> Result<()> {
 
     let mut resp_words = vec![];
     for msg in resp.choices.iter() {
-        let resp_msg = MessageRequest::from_message(msg.message.as_ref().expect("message"))?;
-        history.push(resp_msg);
+        history.push(MessageRequest::Assistant(msg.message.as_ref().expect("message exit").clone()));
         resp_words.push(msg.message.as_ref().expect("message").content.clone());
     }
 

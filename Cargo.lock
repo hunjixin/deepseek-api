@@ -512,6 +512,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "function-call"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "deepseek-api",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
