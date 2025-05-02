@@ -4,8 +4,7 @@ use chat_history::ChatHistory;
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use deepseek_api::{
-    request::{AssistantMessageRequest, MessageRequest, UserMessageRequest},
-    Client,
+    request::{MessageRequest, UserMessageRequest}, response::AssistantMessage, Client
 };
 use ratatui::{
     layout::{ Constraint, Direction, Layout},
@@ -70,7 +69,7 @@ fn main() -> Result<()> {
                 }
                 req_state
                     .history
-                    .push(MessageRequest::Assistant(AssistantMessageRequest::new(
+                    .push(MessageRequest::Assistant(AssistantMessage::new(
                         &msg_buf,
                     )));
             }

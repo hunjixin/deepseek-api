@@ -19,12 +19,15 @@ The DeepSeek API SDK simplifies communication with the DeepSeek backend by offer
 
 Add the DeepSeek API SDK to your project by including it in your `Cargo.toml`:
 
-todo
-
+```
+cargo add deepseek-api
+```
 
 ## Usage
-You can use the DeepSeek API SDK with either asynchronous or synchronous code, depending on your application's requirements. Below are examples demonstrating both approaches:
-### Asynchronous Example
+
+The DeepSeek API SDK supports both asynchronous and synchronous usage patterns in Rust, giving you flexibility based on your runtime and application needs. You can also leverage function calling features for advanced interactions like calling custom-defined tools.
+
+### Asynchronous Example  (Recommended for Most Use Cases)
 ```rust
 use anyhow::Result;
 use clap::Parser;
@@ -75,9 +78,7 @@ async fn main() -> Result<()> {
 
                 let mut resp_words = vec![];
                 for msg in resp.choices.iter() {
-                    let resp_msg =
-                        MessageRequest::from_message(msg.message.as_ref().expect("message"))?;
-                    history.push(resp_msg);
+                    history.push(MessageRequest::Assistant(msg.message.as_ref().expect("message exit").clone()));
                     resp_words.push(msg.message.as_ref().expect("message").content.clone());
                 }
 
@@ -92,8 +93,12 @@ async fn main() -> Result<()> {
 
 ```
 
-### Synchronous Example
-use `default-features = false, features = ["is_sync"]` feature to use sync api
+### Synchronous Example  (Requires Feature Flag)
+To use the synchronous version, disable default features and enable is_sync:
+```examples
+deepseek-api = { version = "xx", default-features = false, features = ["is_sync"] }
+```
+
 ```rs
 use anyhow::Result;
 use clap::Parser;
@@ -122,8 +127,7 @@ fn main() -> Result<()> {
 
     let mut resp_words = vec![];
     for msg in resp.choices.iter() {
-        let resp_msg = MessageRequest::from_message(msg.message.as_ref().expect("message"))?;
-        history.push(resp_msg);
+        history.push(MessageRequest::Assistant(msg.message.as_ref().expect("message exit").clone()));
         resp_words.push(msg.message.as_ref().expect("message").content.clone());
     }
 
@@ -134,4 +138,88 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+```
+
+### Function Calling
+
+Use the function calling interface to define and invoke tools via the API.
+
+```rust
+use anyhow::Result;
+use clap::Parser;
+use deepseek_api::request::{Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest};
+use deepseek_api::response::FinishReason;
+use deepseek_api::Client;
+use deepseek_api::request::MessageRequest;
+use std::vec;
+use schemars::schema::SchemaObject;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[clap(long)]
+    pub api_key: String,
+}
+
+/// This example demonstrates how to use function calling in the DeepSeek API.
+/// It defines a function to get the weather of a location, and then calls that function
+/// based on the user's input. The function is defined using JSON Schema, and the API
+/// will automatically parse the user's input to match the function's parameters.
+/// More detail can refer to https://api-docs.deepseek.com/guides/function_calling
+#[tokio::main]
+async fn main() -> Result<()> {
+    let args = Args::parse();
+    let client = Client::new(&args.api_key);
+    let parameters: SchemaObject = serde_json::from_str(r#"{
+        "type": "object",
+        "properties": {
+            "location": {
+                "type": "string",
+                "description": "The location to get the weather for"
+            },
+            "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "The unit of temperature"
+            }
+        },
+        "required": ["location"]
+    }"#)?;
+
+    let tool_object = ToolObject{
+        tool_type: ToolType::Function,
+        function: Function{
+            name: "get_weather".to_string(),
+            description: "Get weather of an location, the user shoud supply a location first".to_string(),
+            parameters
+        },
+    };
+   
+    let mut messages = vec![
+        MessageRequest::User(UserMessageRequest::new(
+            "How's the weather in Hangzhou?"
+        ))
+    ];
+    let mut completetion = client.chat();
+    let req = client.chat().chat_builder(messages.clone()).tools(vec![tool_object.clone()]);
+    let resp = completetion.create(req).await?.must_response();
+    let mut id = String::new();
+    if resp.choices[0].finish_reason == FinishReason::ToolCalls {
+        if let Some(msg) = &resp.choices[0].message {
+           if let Some(tool) = &msg.tool_calls {
+                id = tool[0].id.clone();
+                println!("Function id: {}", id);
+                println!("Function name: {}", tool[0].function.name);
+                println!("Function parameters: {:?}", tool[0].function.arguments);
+            }
+            messages.push(MessageRequest::Assistant(msg.clone()));
+        }
+    }
+
+    messages.push( MessageRequest::Tool(ToolMessageRequest::new("24℃", &id )));
+    let req = client.chat().chat_builder(messages.clone()).tools(vec![tool_object.clone()]);
+    let resp = completetion.create(req).await?.must_response();
+    println!("Reply with my function: {:?}", resp.choices[0].message.as_ref().unwrap().content);
+    Ok(())
+}
 ```

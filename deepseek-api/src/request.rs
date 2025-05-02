@@ -1,5 +1,5 @@
 use crate::response::{
-    ChatCompletion, ChatCompletionStream, JSONChoiceStream, Message, ModelType, TextChoiceStream,
+    ChatCompletion,AssistantMessage, ChatCompletionStream, JSONChoiceStream, ModelType, TextChoiceStream,
 };
 use anyhow::{anyhow, Ok, Result};
 use schemars::schema::SchemaObject;
@@ -292,7 +292,7 @@ impl Default for TopLogprobs {
 }
 
 /// Represents a message request with different roles.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "role")]
 pub enum MessageRequest {
     #[serde(rename = "system")]
@@ -300,49 +300,12 @@ pub enum MessageRequest {
     #[serde(rename = "user")]
     User(UserMessageRequest),
     #[serde(rename = "assistant")]
-    Assistant(AssistantMessageRequest),
+    Assistant(AssistantMessage),
     #[serde(rename = "tool")]
     Tool(ToolMessageRequest),
 }
 
 impl MessageRequest {
-    /// Creates a `MessageRequest` instance from a `Message`.
-    ///
-    /// # Arguments
-    ///
-    /// * `resp_message` - A reference to a `Message`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the message role is invalid.
-    pub fn from_message(resp_message: &Message) -> Result<Self> {
-        match resp_message.role.as_str() {
-            "system" => Ok(MessageRequest::System(SystemMessageRequest {
-                content: resp_message.content.clone(),
-                name: None,
-            })),
-            "user" => Ok(MessageRequest::User(UserMessageRequest {
-                content: resp_message.content.clone(),
-                name: None,
-            })),
-            "assistant" => {
-                let request = match resp_message.reasoning_content.clone() {
-                    Some(reasoning_content) => {
-                        AssistantMessageRequest::new(resp_message.content.as_str())
-                            .set_reasoning_content(reasoning_content.as_str())
-                    }
-                    None => AssistantMessageRequest::new(resp_message.content.as_str()),
-                };
-                Ok(MessageRequest::Assistant(request))
-            }
-            "tool" => Ok(MessageRequest::Tool(ToolMessageRequest {
-                content: resp_message.content.clone(),
-                tool_call_id: "".to_string(), //todo how to get tool_call_id ?
-            })),
-            _ => Err(anyhow!("Invalid message role.".to_string())),
-        }
-    }
-
     pub fn get_content(&self) -> String {
         match self {
             MessageRequest::System(req) => req.content.clone(),
@@ -421,67 +384,6 @@ impl UserMessageRequest {
     }
 }
 
-/// Represents an assistant message request.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AssistantMessageRequest {
-    pub content: String,
-    pub name: Option<String>,
-    pub prefix: bool,
-    pub reasoning_content: Option<String>,
-}
-
-impl AssistantMessageRequest {
-    /// Creates a new `AssistantMessageRequest` instance.
-    ///
-    /// # Arguments
-    ///
-    /// * `msg` - A string slice representing the message content.
-    pub fn new(msg: &str) -> Self {
-        AssistantMessageRequest {
-            content: msg.to_string(),
-            name: None,
-            prefix: false,
-            reasoning_content: None,
-        }
-    }
-
-    /// Creates a new `AssistantMessageRequest` instance with a name.
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - A string slice representing the name.
-    /// * `msg` - A string slice representing the message content.
-    pub fn new_with_name(name: &str, msg: &str) -> Self {
-        AssistantMessageRequest {
-            content: msg.to_string(),
-            name: Some(name.to_string()),
-            prefix: false,
-            reasoning_content: None,
-        }
-    }
-
-    /// Sets the reasoning content for the `AssistantMessageRequest`.
-    ///
-    /// # Arguments
-    ///
-    /// * `content` - A string slice representing the reasoning content.
-    ///
-    /// # Returns
-    ///
-    /// Returns the updated `AssistantMessageRequest` instance.
-    pub fn set_reasoning_content(mut self, content: &str) -> Self {
-        self.prefix = true;
-        self.reasoning_content = Some(content.to_string());
-        self
-    }
-
-    pub fn set_prefix(mut self, content: &str) -> Self {
-        self.prefix = true;
-        self.content = content.to_string();
-        self
-    }
-}
-
 /// Represents a tool message request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ToolMessageRequest {
@@ -515,7 +417,7 @@ pub trait RequestBuilder {
 }
 
 /// Represents a request for completions.
-#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct CompletionsRequest {
     pub messages: Vec<MessageRequest>,
     pub model: ModelType,
@@ -582,7 +484,7 @@ impl Serialize for CompletionsRequest {
 }
 
 #[derive(Debug, Default)]
-pub struct CompletionsRequestBuilder {
+pub struct CompletionsRequestBuilder {  //todo too many colone when use this type, improve it especially for message field
     beta: bool,
     messages: Vec<MessageRequest>,
     model: ModelType,
@@ -626,7 +528,7 @@ impl CompletionsRequestBuilder {
     // https://api-docs.deepseek.com/zh-cn/guides/chat_prefix_completion
     pub fn append_prefix_message(mut self, msg: &str) -> Self {
         self.messages.push(MessageRequest::Assistant(
-            AssistantMessageRequest::new(msg).set_prefix(msg),
+            AssistantMessage::new(msg).set_prefix(msg),
         ));
         self
     }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::Client;
-use deepseek_api::{request::MessageRequest, response::ModelType};
+use deepseek_api::response::ModelType;
 use std::io::{stdin, stdout, Write};
 use std::vec;
 
@@ -51,9 +51,7 @@ async fn main() -> Result<()> {
 
                 let mut resp_words = vec![];
                 for msg in resp.choices.iter() {
-                    let resp_msg =
-                        MessageRequest::from_message(msg.message.as_ref().expect("message"))?;
-                    history.push(resp_msg);
+                    history.push(msg.message.as_ref().expect("message exit").clone());
                     resp_words.push(msg.message.as_ref().expect("message").content.clone());
                 }
 
