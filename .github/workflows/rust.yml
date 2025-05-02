@@ -24,7 +24,7 @@ jobs:
        cargo clippy -p chat-stream --all-targets --all-features
        cargo clippy -p fim --all-targets --all-features
        cargo clippy -p sync-basic --all-targets --all-features
-       cargo clippy -p talk-tui --all-targets --all-features
+       cargo clippy -p ds-cli --all-targets --all-features
 
     - name: Build
       run: |
@@ -33,7 +33,14 @@ jobs:
        cargo build -p chat-stream --all-targets
        cargo build -p fim --all-targets
        cargo build -p sync-basic --all-targets
-       cargo build -p talk-tui --all-targets
+       cargo build -p ds-cli --all-targets
 
     - name: Run tests
       run: cargo test -p deepseek-api --verbose
+
+    - name: Publish crates
+      uses: katyo/publish-crates@v2
+      if: startsWith(github.ref, 'refs/tags/v')
+      with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          path: "deepseek-api"
