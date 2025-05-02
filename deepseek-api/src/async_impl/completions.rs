@@ -31,7 +31,7 @@ impl ChatCompletions {
         Builder: RequestBuilder + Send,
     {
         let host = if request_builder.is_beta() {
-            self.host.to_owned() + "/beta/completions"
+            self.host.to_owned() + "/beta/completions"    
         } else {
             self.host.to_owned() + "/chat/completions"
         };

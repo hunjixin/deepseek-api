@@ -17,6 +17,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Linelint
+      uses: fernandrone/linelint@master
+      id: linelint
+
+    - name: Check signed commits in PR
+      uses: 1Password/check-signed-commits-action@v1
+
     - name: Run Clippy
       run: |
        cargo clippy -p deepseek-api --all-targets --all-features
