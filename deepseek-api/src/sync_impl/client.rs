@@ -1,8 +1,7 @@
 use super::completions::ChatCompletions;
 use crate::response::{BalanceResp, ModelResp};
 use anyhow::Result;
-use reqwest::blocking::{Client as ReqwestClient, ClientBuilder};
-use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::blocking::Client as ReqwestClient;
 
 #[derive(Clone)]
 /// A client for interacting with the DeepSeek API.
@@ -10,11 +9,10 @@ use reqwest::header::{HeaderMap, HeaderValue};
 /// # Example
 ///
 /// ```no_run
-/// fn main() {
-///     use deepseek_api::Client;
+///     use deepseek_api::ClientBuilder;
 ///
-///     let api_key = "your_api_key";
-///     let client = Client::new(api_key);
+///     let api_key = "your_api_key".to_string();
+///     let client = ClientBuilder::new(api_key).build().unwrap();
 ///
 ///     // Get available models
 ///     let models = client.models().unwrap();
@@ -24,7 +22,6 @@ use reqwest::header::{HeaderMap, HeaderValue};
 ///
 ///     // Create a chat completion
 ///     let chat = client.chat();
-/// }
 /// ```
 ///
 /// # Fields
@@ -32,59 +29,15 @@ use reqwest::header::{HeaderMap, HeaderValue};
 /// * `client` - The underlying HTTP client.
 /// * `host` - The base URL for the DeepSeek API.
 pub struct Client {
-    client: ReqwestClient,
-    host: &'static str,
+    pub(crate) client: ReqwestClient,
+    pub(crate) host: String,
 }
 
 impl Client {
-    /// Creates a new `Client` instance with the provided API key.
-    ///
-    /// This method initializes the client with the necessary headers, including
-    /// the authorization header with the provided API key.
-    ///
-    /// # Arguments
-    ///
-    /// * `api_key` - A string slice that holds the API key for authorization.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of the `Client` struct.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the `HeaderValue` cannot be created from the
-    /// provided API key or if the `Client` cannot be built.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use deepseek_api::Client;
-    ///
-    /// let client = Client::new("your_api_key");
-    /// ```
-    pub fn new(api_key: &str) -> Self {
-        let mut headers = HeaderMap::new();
-        let bearer = format!("Bearer {}", api_key);
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&bearer).expect("bearer"),
-        );
-
-        let client = ClientBuilder::new()
-            .default_headers(headers)
-            .build()
-            .expect("Client::new()");
-
-        Client {
-            client,
-            host: "https://api.deepseek.com",
-        }
-    }
-
     pub fn chat(&self) -> ChatCompletions {
         ChatCompletions {
             client: self.client.clone(),
-            host: self.host,
+            host: self.host.clone(),
         }
     }
 
@@ -101,13 +54,12 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// fn main() {
-    ///     use deepseek_api::Client;
+    ///     use deepseek_api::ClientBuilder;
     ///
-    ///     let client = Client::new("your_api_key");
+    ///     let api_key = "your_api_key".to_string();
+    ///     let client = ClientBuilder::new(api_key).build().unwrap();
     ///     let models = client.models().unwrap();
     ///     println!("{:?}", models);
-    /// }
     /// ```
     ///
     /// For more information, see the [DeepSeek API documentation](https://api-docs.deepseek.com/zh-cn/api/list-models).
@@ -132,13 +84,12 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// fn main() {
-    ///     use deepseek_api::Client;
+    ///     use deepseek_api::ClientBuilder;
     ///
-    ///     let client = Client::new("your_api_key");
+    ///     let api_key = "your_api_key".to_string();
+    ///     let client = ClientBuilder::new(api_key).build().unwrap();
     ///     let balance = client.balance().unwrap();
     ///     println!("{:?}", balance);
-    /// }
     /// ```
     ///
     /// For more information, see the [DeepSeek API documentation](https://api-docs.deepseek.com/zh-cn/api/get-user-balance).

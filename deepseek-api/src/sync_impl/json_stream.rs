@@ -84,10 +84,22 @@ mod tests {
 
         let mut stream = JsonStream::<TestData>::new(response);
         let first = stream.next().unwrap().unwrap();
-        assert_eq!(first, TestData { id: 1, value: "test1".into() });
+        assert_eq!(
+            first,
+            TestData {
+                id: 1,
+                value: "test1".into()
+            }
+        );
 
         let second = stream.next().unwrap().unwrap();
-        assert_eq!(second, TestData { id: 2, value: "test2".into() });
+        assert_eq!(
+            second,
+            TestData {
+                id: 2,
+                value: "test2".into()
+            }
+        );
 
         assert!(stream.next().is_none());
     }

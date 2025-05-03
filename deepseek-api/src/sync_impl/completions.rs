@@ -12,7 +12,7 @@ use reqwest::blocking::Client as ReqwestClient;
 use super::error::ToApiError;
 pub struct ChatCompletions {
     pub(crate) client: ReqwestClient,
-    pub(crate) host: &'static str,
+    pub(crate) host: String,
 }
 
 impl ChatCompletions {
@@ -39,12 +39,23 @@ impl ChatCompletions {
         let is_stream = request_builder.is_stream();
 
         let request = request_builder.build();
+        {
+            let resp = self
+                .client
+                .post(&host)
+                .json(&request)
+                .send()?
+                .to_api_err()?
+                .text()?;
+            println!("response: {}", resp);
+        }
         let resp = self
             .client
             .post(&host)
             .json(&request)
             .send()?
             .to_api_err()?;
+
         if is_stream {
             Ok(ChatResponse::Stream(JsonStream::new(resp)))
         } else {

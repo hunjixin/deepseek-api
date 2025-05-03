@@ -1,5 +1,6 @@
 use crate::response::{
-    ChatCompletion,AssistantMessage, ChatCompletionStream, JSONChoiceStream, ModelType, TextChoiceStream,
+    AssistantMessage, ChatCompletion, ChatCompletionStream, JSONChoiceStream, ModelType,
+    TextChoiceStream,
 };
 use anyhow::{anyhow, Ok, Result};
 use schemars::schema::SchemaObject;
@@ -484,7 +485,8 @@ impl Serialize for CompletionsRequest {
 }
 
 #[derive(Debug, Default)]
-pub struct CompletionsRequestBuilder {  //todo too many colone when use this type, improve it especially for message field
+pub struct CompletionsRequestBuilder {
+    //todo too many colone when use this type, improve it especially for message field
     beta: bool,
     messages: Vec<MessageRequest>,
     model: ModelType,

@@ -11,7 +11,7 @@ use reqwest::Client as ReqwestClient;
 use super::error::ToApiError;
 pub struct ChatCompletions {
     pub(crate) client: ReqwestClient,
-    pub(crate) host: &'static str,
+    pub(crate) host: String,
 }
 
 impl ChatCompletions {
@@ -31,7 +31,7 @@ impl ChatCompletions {
         Builder: RequestBuilder + Send,
     {
         let host = if request_builder.is_beta() {
-            self.host.to_owned() + "/beta/completions"    
+            self.host.to_owned() + "/beta/completions"
         } else {
             self.host.to_owned() + "/chat/completions"
         };

@@ -20,7 +20,7 @@ impl ModelType {
     /// Retrieves the limit information for the model.
     ///
     /// Returns a tuple containing:
-    /// - `context_len`: Maximum context length unit KB. 
+    /// - `context_len`: Maximum context length unit KB.
     /// - `thought_chain_len`: Optional maximum thought chain length.
     /// - `output_len`: Maximum output length.
     pub fn get_limit_info(&self) -> (u32, Option<u32>, u32) {
@@ -121,7 +121,7 @@ pub struct ToolCall {
 
 /// Represents a message with its content and optional reasoning content and tool calls.
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct AssistantMessage {    
+pub struct AssistantMessage {
     /// Content of the message.
     pub content: String,
     /// Optional reasoning content.
@@ -129,10 +129,9 @@ pub struct AssistantMessage {
     /// Optional list of tool calls.
     pub tool_calls: Option<Vec<ToolCall>>,
     pub name: Option<String>,
-    #[serde(default)] 
-    pub prefix: bool
+    #[serde(default)]
+    pub prefix: bool,
 }
-
 
 impl AssistantMessage {
     /// Creates a new `AssistantMessage` instance.
