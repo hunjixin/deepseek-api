@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::Client;
 use deepseek_api::response::ModelType;
+use deepseek_api::ClientBuilder;
 use std::io::{stdin, stdout, Write};
 use std::vec;
 
@@ -15,7 +15,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = Client::new(&args.api_key);
+    let client = ClientBuilder::new(args.api_key.clone()).build()?;
     loop {
         let mut buffer = String::new();
 

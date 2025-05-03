@@ -1,7 +1,6 @@
 use deepseek_api::request::MessageRequest;
 use ratatui::prelude::*;
 
-
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     widgets::{Paragraph, Scrollbar, ScrollbarState, Wrap},
@@ -11,7 +10,7 @@ use ratatui::{
 pub(crate) struct ChatHistory;
 
 impl ChatHistory {
-    pub(crate)  fn render(
+    pub(crate) fn render(
         f: &mut Frame,
         area: Rect,
         history: &[MessageRequest],
@@ -37,7 +36,8 @@ impl ChatHistory {
         }
 
         // render lines
-        let visible_lines = Self::get_visible_lines(history, *scroll_offset, content_width, visible_height);
+        let visible_lines =
+            Self::get_visible_lines(history, *scroll_offset, content_width, visible_height);
         let constraints = vec![Constraint::Length(1); content_area.height as usize];
         let inner_layout = Layout::vertical(constraints).split(content_area);
         for i in 0..content_area.height as usize {
@@ -46,17 +46,17 @@ impl ChatHistory {
                     .alignment(*alignment)
                     .wrap(Wrap { trim: true });
                 f.render_widget(para, inner_layout[i]);
-            } 
+            }
         }
 
         let scrollbar = Scrollbar::default()
             .begin_symbol(Some("↑"))
             .end_symbol(Some("↓"));
-        
-                let mut state = ScrollbarState::new(scrollable_height)
+
+        let mut state = ScrollbarState::new(scrollable_height)
             .position(*scroll_offset)
             .viewport_content_length(visible_height.min(total_lines));
-         
+
         f.render_stateful_widget(scrollbar, scrollbar_area, &mut state);
     }
 

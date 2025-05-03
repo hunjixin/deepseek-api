@@ -27,6 +27,10 @@ jobs:
         github.event_name == 'pull_request_target'
       uses: 1Password/check-signed-commits-action@v1
 
+    - name: Foramt check
+      run: |
+        cargo fmt --all -- --check
+
     - name: Run Clippy
       run: |
        cargo clippy -p deepseek-api --all-targets --all-features

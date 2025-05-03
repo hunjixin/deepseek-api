@@ -4,18 +4,20 @@ use chat_history::ChatHistory;
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use deepseek_api::{
-    request::{MessageRequest, UserMessageRequest}, response::AssistantMessage, Client
+    request::{MessageRequest, UserMessageRequest},
+    response::AssistantMessage,
+    ClientBuilder,
 };
 use ratatui::{
-    layout::{ Constraint, Direction, Layout},
-    style::{Color,Style},
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Style},
     widgets::{Block, Borders, Paragraph},
     DefaultTerminal, Frame,
 };
 use std::sync::{
-        mpsc::{channel, Sender},
-        Arc, RwLock,
-    };
+    mpsc::{channel, Sender},
+    Arc, RwLock,
+};
 use std::{thread, time::Duration};
 use tui_input::{backend::crossterm::EventHandler, Input};
 
@@ -39,7 +41,7 @@ fn main() -> Result<()> {
     let req_state = Arc::new(RwLock::new(ReqStat::default()));
 
     {
-        let client = Client::new(&args.api_key);
+        let client = ClientBuilder::new(args.api_key.clone()).build()?;
         let req_state = req_state.clone();
         thread::spawn(move || loop {
             //request thread
@@ -69,9 +71,7 @@ fn main() -> Result<()> {
                 }
                 req_state
                     .history
-                    .push(MessageRequest::Assistant(AssistantMessage::new(
-                        &msg_buf,
-                    )));
+                    .push(MessageRequest::Assistant(AssistantMessage::new(&msg_buf)));
             }
 
             let mut req_state = req_state.write().unwrap();
@@ -102,7 +102,7 @@ struct App {
 impl App {
     fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         loop {
-            terminal.draw(|f| ui(f, &mut self))?;         
+            terminal.draw(|f| ui(f, &mut self))?;
             if event::poll(Duration::from_millis(0))? {
                 if let Event::Key(key) = event::read()? {
                     match key.code {
@@ -132,12 +132,18 @@ impl App {
                             return Ok(());
                         }
                         _ => {
-                            if key.modifiers.contains(event::KeyModifiers::CONTROL) && (key.code == KeyCode::Enter || key.code == KeyCode::Char('j')) {
+                            if key.modifiers.contains(event::KeyModifiers::CONTROL)
+                                && (key.code == KeyCode::Enter || key.code == KeyCode::Char('j'))
+                            {
                                 //if got controller + enter its enter for input
                                 println!("control enter ");
                                 let state = self.req_state.read().unwrap();
                                 if !state.is_requesting {
-                                    self.input.handle_event(&Event::Key(KeyEvent::new_with_kind(KeyCode::Enter, event::KeyModifiers::NONE, KeyEventKind::Press)));
+                                    self.input.handle_event(&Event::Key(KeyEvent::new_with_kind(
+                                        KeyCode::Enter,
+                                        event::KeyModifiers::NONE,
+                                        KeyEventKind::Press,
+                                    )));
                                 }
                             } else {
                                 // dispatch other keys to input
@@ -146,7 +152,6 @@ impl App {
                                     self.input.handle_event(&Event::Key(key));
                                 }
                             }
-                           
                         }
                     }
                 }
@@ -177,13 +182,19 @@ fn ui(f: &mut Frame, app: &mut App) {
         (state.history.clone(), state.is_requesting)
     };
 
-    ChatHistory::render(f, chunks[0], &history, &mut app.scroll_offset, is_requesting);
+    ChatHistory::render(
+        f,
+        chunks[0],
+        &history,
+        &mut app.scroll_offset,
+        is_requesting,
+    );
 
     //render inputs
     let input_block = Block::default()
         .borders(Borders::ALL)
         .title("Input Question?  Press ESC to exit");
-    
+
     let width = chunks[1].width.max(3) - 3;
     let scroll = app.input.visual_scroll(width as usize);
     let mut input = Paragraph::new(app.input.value())
@@ -194,7 +205,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         true => input.style(Style::default().fg(Color::Gray)),
         false => input.style(Style::default().fg(Color::Green)),
     };
-    
+
     f.render_widget(input, chunks[1]);
 
     if !is_requesting {

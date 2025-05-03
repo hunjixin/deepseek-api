@@ -1,11 +1,13 @@
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::request::{Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest};
-use deepseek_api::response::FinishReason;
-use deepseek_api::Client;
+use deepseek_api::ClientBuilder;
 use deepseek_api::request::MessageRequest;
-use std::vec;
+use deepseek_api::request::{
+    Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
+};
+use deepseek_api::response::FinishReason;
 use schemars::schema::SchemaObject;
+use std::vec;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -22,8 +24,9 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = Client::new(&args.api_key);
-    let parameters: SchemaObject = serde_json::from_str(r#"{
+    let client = ClientBuilder::new(args.api_key.clone()).build()?;
+    let parameters: SchemaObject = serde_json::from_str(
+        r#"{
         "type": "object",
         "properties": {
             "location": {
@@ -37,29 +40,32 @@ async fn main() -> Result<()> {
             }
         },
         "required": ["location"]
-    }"#)?;
+    }"#,
+    )?;
 
-    let tool_object = ToolObject{
+    let tool_object = ToolObject {
         tool_type: ToolType::Function,
-        function: Function{
+        function: Function {
             name: "get_weather".to_string(),
-            description: "Get weather of an location, the user shoud supply a location first".to_string(),
-            parameters
+            description: "Get weather of an location, the user shoud supply a location first"
+                .to_string(),
+            parameters,
         },
     };
-   
-    let mut messages = vec![
-        MessageRequest::User(UserMessageRequest::new(
-            "How's the weather in Hangzhou?"
-        ))
-    ];
+
+    let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
+        "How's the weather in Hangzhou?",
+    ))];
     let mut completetion = client.chat();
-    let req = client.chat().chat_builder(messages.clone()).tools(vec![tool_object.clone()]);
+    let req = client
+        .chat()
+        .chat_builder(messages.clone())
+        .tools(vec![tool_object.clone()]);
     let resp = completetion.create(req).await?.must_response();
     let mut id = String::new();
     if resp.choices[0].finish_reason == FinishReason::ToolCalls {
         if let Some(msg) = &resp.choices[0].message {
-           if let Some(tool) = &msg.tool_calls {
+            if let Some(tool) = &msg.tool_calls {
                 id = tool[0].id.clone();
                 println!("Function id: {}", id);
                 println!("Function name: {}", tool[0].function.name);
@@ -69,9 +75,15 @@ async fn main() -> Result<()> {
         }
     }
 
-    messages.push( MessageRequest::Tool(ToolMessageRequest::new("24℃", &id )));
-    let req = client.chat().chat_builder(messages.clone()).tools(vec![tool_object.clone()]);
+    messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
+    let req = client
+        .chat()
+        .chat_builder(messages.clone())
+        .tools(vec![tool_object.clone()]);
     let resp = completetion.create(req).await?.must_response();
-    println!("Reply with my function: {:?}", resp.choices[0].message.as_ref().unwrap().content);
+    println!(
+        "Reply with my function: {:?}",
+        resp.choices[0].message.as_ref().unwrap().content
+    );
     Ok(())
 }

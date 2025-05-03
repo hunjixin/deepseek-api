@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::Client;
+use deepseek_api::ClientBuilder;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -13,7 +13,7 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let client = Client::new(&args.api_key);
+    let client = ClientBuilder::new(args.api_key.clone()).build()?;
 
     let balances = client.balance().await?;
     println!("balances {:?}", balances);
