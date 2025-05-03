@@ -48,7 +48,9 @@ jobs:
        cargo build -p function-call --all-targets
 
     - name: Run tests
-      run: cargo test -p deepseek-api --verbose
+      run: |
+        cargo test -p deepseek-api --verbose
+        cargo test -p deepseek-api --verbose  --features=is_sync
 
     - name: Publish crates
       uses: katyo/publish-crates@v2

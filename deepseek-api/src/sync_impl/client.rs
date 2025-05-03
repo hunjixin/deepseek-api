@@ -10,18 +10,17 @@ use reqwest::header::{HeaderMap, HeaderValue};
 /// # Example
 ///
 /// ```no_run
-/// #[tokio::main]
-/// async fn main() {
+/// fn main() {
 ///     use deepseek_api::Client;
 ///
 ///     let api_key = "your_api_key";
 ///     let client = Client::new(api_key);
 ///
 ///     // Get available models
-///     let models = client.models().await.unwrap();
+///     let models = client.models().unwrap();
 ///
 ///     // Get user balance
-///     let balance = client.balance().await.unwrap();
+///     let balance = client.balance().unwrap();
 ///
 ///     // Create a chat completion
 ///     let chat = client.chat();
@@ -102,12 +101,11 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// #[tokio::main]
-    /// async fn main() {
+    /// fn main() {
     ///     use deepseek_api::Client;
     ///
     ///     let client = Client::new("your_api_key");
-    ///     let models = client.models().await.unwrap();
+    ///     let models = client.models().unwrap();
     ///     println!("{:?}", models);
     /// }
     /// ```
@@ -134,12 +132,11 @@ impl Client {
     /// # Example
     ///
     /// ```no_run
-    /// #[tokio::main]
-    /// async fn main() {
+    /// fn main() {
     ///     use deepseek_api::Client;
     ///
     ///     let client = Client::new("your_api_key");
-    ///     let balance = client.balance().await.unwrap();
+    ///     let balance = client.balance().unwrap();
     ///     println!("{:?}", balance);
     /// }
     /// ```

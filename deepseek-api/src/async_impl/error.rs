@@ -32,3 +32,56 @@ impl ToApiError for Response {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::{Response, StatusCode};
+    use http::response::Builder;
+    use std::error::Error;
+
+    fn mock_response(status: u16, body: &str) -> Response {
+        let response = Builder::new()
+            .status(status)
+            .body(body.to_owned())
+            .unwrap();
+        Response::from(response)
+    }
+
+    #[tokio::test]
+    async fn test_ok_responses() -> Result<(), Box<dyn Error>> {
+        let ok_statuses = [200, 201, 302, 404];
+
+        for status in ok_statuses {
+            let resp = mock_response(status, "");
+            let result = resp.to_api_err().await?;
+            assert_eq!(result.status(), StatusCode::from_u16(status)?);
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_error_mapping() {
+        let test_cases = vec![
+            (400, "bad request", ApiError::BadRequest("bad request".into())),
+            (401, "unauthorized",ApiError::Unauthorized("unauthorized".into())),
+            (402, "insufficient funds", ApiError::InsufficientFunds("insufficient funds".into())),
+            (422, "invalid params",ApiError::InvalidParameters("invalid params".into())),
+            (429, "rate limit", ApiError::RateLimitExceeded("rate limit".into())),
+            (500, "server error", ApiError::ServerError("server error".into())),
+            (503, "unavailable", ApiError::ServiceUnavailable("unavailable".into())),
+        ];
+
+        for (status, err_str, _expected_err) in test_cases {
+            let resp = mock_response(status, err_str );
+            let err = resp.to_api_err().await.unwrap_err();
+
+            assert!(
+                matches!(&err, _expected_err),
+                "Status {} generated wrong error type: {:?}",
+                status, err
+            );
+            assert_eq!(err.to_string(), _expected_err.to_string());
+        }
+    }
+}
