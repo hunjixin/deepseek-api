@@ -22,6 +22,9 @@ jobs:
       id: linelint
 
     - name: Check signed commits in PR
+      if: |
+        github.event_name == 'pull_request' || 
+        github.event_name == 'pull_request_target'
       uses: 1Password/check-signed-commits-action@v1
 
     - name: Run Clippy
@@ -32,6 +35,7 @@ jobs:
        cargo clippy -p fim --all-targets --all-features
        cargo clippy -p sync-basic --all-targets --all-features
        cargo clippy -p ds-cli --all-targets --all-features
+       cargo clippy -p function-call --all-targets --all-features
 
     - name: Build
       run: |
@@ -41,6 +45,7 @@ jobs:
        cargo build -p fim --all-targets
        cargo build -p sync-basic --all-targets
        cargo build -p ds-cli --all-targets
+       cargo build -p function-call --all-targets
 
     - name: Run tests
       run: cargo test -p deepseek-api --verbose
