@@ -1,0 +1,11 @@
+[package]
+name = "deep-think"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow="1.0.95"
+deepseek-api = {path="../../deepseek-api", default-features = false, features = ["is_async"]}
+clap = { version = "4.1.11", features = ["derive"] }
+tokio = { version = "1.43.1", features = ["full"] }
+tokio-stream = {version = "0.1.17", features = ["io-util"]}

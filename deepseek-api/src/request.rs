@@ -307,12 +307,12 @@ pub enum MessageRequest {
 }
 
 impl MessageRequest {
-    pub fn get_content(&self) -> String {
+    pub fn get_content(&self) -> &str {
         match self {
-            MessageRequest::System(req) => req.content.clone(),
-            MessageRequest::User(req) => req.content.clone(),
-            MessageRequest::Assistant(req) => req.content.clone(),
-            MessageRequest::Tool(req) => req.content.clone(),
+            MessageRequest::System(req) => req.content.as_str(),
+            MessageRequest::User(req) => req.content.as_str(),
+            MessageRequest::Assistant(req) => req.content.as_str(),
+            MessageRequest::Tool(req) => req.content.as_str(),
         }
     }
 }
@@ -699,6 +699,7 @@ pub struct FMICompletionsRequestBuilder {
 impl FMICompletionsRequestBuilder {
     pub fn new(prompt: &str, suffix: &str) -> Self {
         Self {
+            //fim only support deepseek-chat model
             model: ModelType::DeepSeekChat,
             prompt: prompt.to_string(),
             suffix: suffix.to_string(),
@@ -706,11 +707,6 @@ impl FMICompletionsRequestBuilder {
             stream: false,
             ..Default::default()
         }
-    }
-
-    pub fn use_model(mut self, model: ModelType) -> Self {
-        self.model = model;
-        self
     }
 
     pub fn echo(mut self, value: bool) -> Self {

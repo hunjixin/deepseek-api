@@ -39,16 +39,6 @@ impl ChatCompletions {
         let is_stream = request_builder.is_stream();
 
         let request = request_builder.build();
-        {
-            let resp = self
-                .client
-                .post(&host)
-                .json(&request)
-                .send()?
-                .to_api_err()?
-                .text()?;
-            println!("response: {}", resp);
-        }
         let resp = self
             .client
             .post(&host)

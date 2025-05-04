@@ -367,6 +367,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "deep-think"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "deepseek-api",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "deepseek-api"
 version = "0.1.0-alpha.3"
 dependencies = [

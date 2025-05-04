@@ -284,10 +284,10 @@ pub struct ChatCompletion {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Delta {
     /// Content of the delta change.
-    pub content: String,
+    pub content: Option<String>,
     /// Reasoning content of the delta change.
     #[serde(default)]
-    pub reasoning_content: String,
+    pub reasoning_content: Option<String>,
     /// Role of the delta change sender.
     #[serde(default)]
     pub role: String,
@@ -376,5 +376,51 @@ where
             ChatResponse::Stream(stream) => stream,
             ChatResponse::Full(_) => panic!("Expected Stream variant, found Full"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_deserialize_chat_completion_stream() {
+        let json_data = json!({
+          "id": "6f81a959-b76a-4f5a-94c5-77089b7c646d",
+          "object": "chat.completion.chunk",
+          "created": 1746341234,
+          "model": "deepseek-reasoner",
+          "system_fingerprint": "fp_5417b77867_prod0425fp8",
+          "choices": [
+            {
+              "index": 0,
+              "delta": {
+                "role": "assistant",
+                "content": null,
+                "reasoning_content": ""
+              },
+              "logprobs": null,
+              "finish_reason": null
+            }
+          ]
+        });
+
+        let deserialized: ChatCompletionStream<JSONChoiceStream> =
+            serde_json::from_value(json_data).unwrap();
+
+        assert_eq!(deserialized.id, "6f81a959-b76a-4f5a-94c5-77089b7c646d");
+        assert_eq!(deserialized.object, "chat.completion.chunk");
+        assert_eq!(deserialized.created, 1746341234);
+        assert_eq!(deserialized.model, "deepseek-reasoner");
+        assert_eq!(deserialized.system_fingerprint, "fp_5417b77867_prod0425fp8");
+        assert_eq!(deserialized.choices.len(), 1);
+
+        let choice = &deserialized.choices[0];
+        assert_eq!(choice.index, 0);
+        assert_eq!(choice.delta.role, "assistant");
+        assert!(choice.delta.content.is_none());
+        assert_eq!(choice.delta.reasoning_content.as_ref().unwrap(), "");
+        assert!(choice.finish_reason.is_none());
     }
 }

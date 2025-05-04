@@ -7,16 +7,15 @@ use std::{
 };
 
 pub struct JsonStream<T> {
-    ph: PhantomData<T>,
+    _ph: PhantomData<T>,
     lines: std::io::Lines<BufReader<Response>>,
 }
 
 impl<T: DeserializeOwned> JsonStream<T> {
     pub fn new(response: Response) -> Self {
-        let reader = BufReader::new(response);
-        let lines = reader.lines();
+        let lines = BufReader::new(response).lines();
         JsonStream {
-            ph: PhantomData,
+            _ph: PhantomData,
             lines,
         }
     }
@@ -47,7 +46,7 @@ impl<T: DeserializeOwned> Iterator for JsonStream<T> {
                         return Some(Err(anyhow!("{} Missing 'data: ' prefix", line)));
                     }
                 }
-                Err(e) => return Some(Err(anyhow::Error::new(e))),
+                Err(e) => return Some(Err(Error::new(e))),
             }
         }
         None
