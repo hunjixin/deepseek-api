@@ -40,6 +40,7 @@ jobs:
        cargo clippy -p sync-basic --all-targets --all-features
        cargo clippy -p ds-cli --all-targets --all-features
        cargo clippy -p function-call --all-targets --all-features
+       cargo clippy -p deep-think --all-targets --all-features
 
     - name: Build
       run: |
@@ -50,6 +51,7 @@ jobs:
        cargo build -p sync-basic --all-targets
        cargo build -p ds-cli --all-targets
        cargo build -p function-call --all-targets
+       cargo build -p deep-think --all-targets
 
     - name: Run tests
       run: |
