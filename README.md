@@ -18,6 +18,9 @@ The DeepSeek API SDK simplifies communication with the DeepSeek backend by offer
 ## Use Cli
 This project comes with a command-line tool `ds-cli`, which provides a similar user experience to the web version. You can use it to interact with DeepSeek.
 
+```bash
+cargo install ds-cli
+```
 ![Image](https://github.com/user-attachments/assets/28b58387-f56c-4583-bc94-7afb54392edb)
 
 
@@ -25,7 +28,7 @@ This project comes with a command-line tool `ds-cli`, which provides a similar u
 
 Add the DeepSeek API SDK to your project by including it in your `Cargo.toml`:
 
-```
+```bash
 cargo add deepseek-api
 ```
 
