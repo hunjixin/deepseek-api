@@ -2,5 +2,6 @@
 resolver = "3"
 members = [
     "deepseek-api",
+    "ds-cli",
      "examples/*"
 ]
