@@ -66,3 +66,4 @@ jobs:
       with:
           registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           path: "deepseek-api"
+          args: "-p deepseek-api"
