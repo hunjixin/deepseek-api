@@ -2,7 +2,7 @@ mod chat_history;
 use anyhow::{anyhow, Result};
 use chat_history::{ChatHistory, DisplayContent};
 use clap::Parser;
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use deepseek_api::{
     request::{MessageRequest, UserMessageRequest},
     response::{AssistantMessage, ModelType},
@@ -158,6 +158,10 @@ impl App {
             terminal.draw(|f| ui(f, &mut self))?;
             if event::poll(Duration::from_millis(0))? {
                 if let Event::Key(key) = event::read()? {
+                    if key.kind == KeyEventKind::Release {
+                        continue;
+                    }
+
                     if key.code == KeyCode::Esc {
                         return Ok(());
                     }
