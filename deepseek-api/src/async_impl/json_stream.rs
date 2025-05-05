@@ -1,14 +1,13 @@
-use anyhow::{Context, Result};
-use futures_util::{Stream, TryStreamExt};
+use anyhow::{Context, Error, Result};
+use futures_util::future;
+use futures_util::io::{AsyncBufReadExt, BufReader};
+use futures_util::stream::{Stream, StreamExt, TryStreamExt};
 use reqwest::Response;
 use serde::de::DeserializeOwned;
 use std::{
     pin::Pin,
     task::{Context as TaskContext, Poll},
 };
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio_stream::{wrappers::LinesStream, StreamExt};
-use tokio_util::io::StreamReader;
 
 /// A stream that processes Server-Sent Events (SSE) and deserializes JSON data.
 ///
@@ -25,7 +24,7 @@ use tokio_util::io::StreamReader;
 /// ```rust
 /// use reqwest::Response;
 /// use serde::Deserialize;
-/// use tokio_stream::StreamExt;
+/// use futures_util::stream::StreamExt;
 /// use deepseek_api::json_stream::JsonStream;
 ///
 /// #[derive(Debug, Deserialize)]
@@ -60,7 +59,7 @@ use tokio_util::io::StreamReader;
 ///
 /// * `Stream` for `JsonStream<T>`: Allows the `JsonStream` to be used as a stream of `Result<T, anyhow::Error>`.
 pub struct JsonStream<T> {
-    inner: Pin<Box<dyn Stream<Item = Result<T, anyhow::Error>> + Send>>,
+    inner: Pin<Box<dyn Stream<Item = Result<T, Error>> + Send>>,
 }
 
 impl<T: DeserializeOwned + Send + 'static> JsonStream<T> {
@@ -68,37 +67,37 @@ impl<T: DeserializeOwned + Send + 'static> JsonStream<T> {
         let byte_stream = response
             .bytes_stream()
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-        let async_reader = StreamReader::new(byte_stream);
 
-        let line_stream = LinesStream::new(BufReader::new(async_reader).lines());
-
-        let processed_stream = line_stream
-            .map_ok(|line| line.trim().to_string())
-            .map_err(anyhow::Error::from) // 将 std::io::Error 转换为 anyhow::Error
-            .take_while(|line| line.as_ref().is_ok_and(|data| data != "data: [DONE]")) // 遇到 "data: [DONE]" 终止流
+        let async_read = byte_stream.into_async_read();
+        let processed = BufReader::new(async_read)
+            .lines()
+            .map_err(Error::from)
+            .take_while(|res| {
+                future::ready(match res {
+                    Ok(ref line) => line != "data: [DONE]",
+                    Err(_) => true,
+                })
+            })
             .try_filter_map(|line| async move {
+                let line = line.trim();
                 if line.is_empty() || line == ": keep-alive" {
                     return Ok(None);
                 }
-
-                let json_str = line
+                let json = line
                     .strip_prefix("data: ")
                     .context("Missing 'data: ' prefix")?;
-
-                serde_json::from_str(json_str)
-                    .map(Some)
-                    .map_err(anyhow::Error::from)
+                let obj = serde_json::from_str(json)?;
+                Ok(Some(obj))
             });
 
         JsonStream {
-            inner: Box::pin(processed_stream),
+            inner: Box::pin(processed),
         }
     }
 }
 
 impl<T: Unpin> Stream for JsonStream<T> {
-    type Item = Result<T, anyhow::Error>;
-
+    type Item = Result<T, Error>;
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut TaskContext<'_>) -> Poll<Option<Self::Item>> {
         self.inner.as_mut().poll_next(cx)
     }
@@ -108,10 +107,10 @@ impl<T: Unpin> Stream for JsonStream<T> {
 mod tests {
     use super::*;
     use bytes::Bytes;
+    use futures_util::stream::StreamExt;
     use http::StatusCode;
     use reqwest::Response;
     use serde::{Deserialize, Serialize};
-    use tokio_stream::{self as stream, StreamExt};
 
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct TestData {
@@ -120,7 +119,7 @@ mod tests {
     }
 
     fn mock_response(data: Vec<Result<Bytes, reqwest::Error>>) -> Response {
-        let body = reqwest::Body::wrap_stream(stream::iter(data));
+        let body = reqwest::Body::wrap_stream(futures_util::stream::iter(data));
         let http_response = http::response::Response::builder()
             .status(StatusCode::OK)
             .body(body)

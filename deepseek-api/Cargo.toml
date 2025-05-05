@@ -19,11 +19,7 @@ anyhow = "1.0.95"
 schemars = "0.8.21"
 
 reqwest = { version = "0.12.15", features = ["json", "stream"], optional = true }
-tokio = { version = "1.43.1", features = ["io-util"], optional = true }
-tokio-stream = { version = "0.1.17", features = ["io-util"], optional = true }
-async-stream = { version = "0.3.6", optional = true }
-tokio-util = { version = "0.7.13", features = ["io-util"], optional = true }
-futures-util = { version = "0.3.31", optional = true }
+futures-util = {version = "0.3", features =["io"], optional = true}
 
 [dev-dependencies]
 bytes = "1.0.0"
@@ -34,10 +30,6 @@ tokio = { version = "1.43.1", features = ["macros", "rt-multi-thread", "test-uti
 default = ["is_async"]
 is_async = [
     "reqwest",         
-    "tokio",
-    "tokio-stream",
-    "async-stream",
-    "tokio-util",
     "futures-util"
 ]
 
