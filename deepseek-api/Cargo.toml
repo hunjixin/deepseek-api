@@ -1,6 +1,6 @@
 [package]
 name = "deepseek-api"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 edition = "2021"
 authors = ["hunjixin"]
 license = "MIT"
