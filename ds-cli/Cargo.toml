@@ -8,7 +8,7 @@ description = "ds-cli is a command line tool to talk with deepseek"
 repository = "https://github.com/hunjixin/deepseek-api"
 readme = "../README.md"
 keywords = ["deepseek", "cli", "rust"]
-categories = ["Cli"]
+categories = ["command-line-interface", "command-line-utilities"]
 
 [dependencies]
 anyhow="1.0.95"
