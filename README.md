@@ -20,6 +20,7 @@ This project comes with a command-line tool `ds-cli`, which provides a similar u
 
 ```bash
 cargo install ds-cli
+ds-cli --api-key <your api key>
 ```
 ![Image](https://github.com/user-attachments/assets/28b58387-f56c-4583-bc94-7afb54392edb)
 
