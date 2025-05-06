@@ -4,7 +4,7 @@ use chat_history::{ChatHistory, DisplayContent};
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use deepseek_api::{
-    request::{MessageRequest, UserMessageRequest},
+    request::{MessageRequest, SystemMessageRequest, UserMessageRequest},
     response::{AssistantMessage, ModelType},
     ClientBuilder,
 };
@@ -28,19 +28,26 @@ struct Args {
     pub api_key: String,
 }
 
+#[derive(Clone, Debug, Default)]
+struct BtnState {
+    use_reasoning_model: bool,
+    send_system_msg: bool,
+}
+
 #[derive(Default)]
-struct ReqStat {
+struct ShareState {
+    btn_state: BtnState,
+    is_requesting: bool,
+
     history: Vec<MessageRequest>,
     display_message: Vec<DisplayContent>,
-    model: ModelType,
-    is_requesting: bool,
 }
 
 fn main() -> Result<()> {
     color_eyre::install().map_err(|err| anyhow!("{err}"))?;
     let args = Args::parse();
     let (req_sender, req_receiver) = channel();
-    let req_state = Arc::new(RwLock::new(ReqStat::default()));
+    let req_state = Arc::new(RwLock::new(ShareState::default()));
 
     {
         let client: deepseek_api::Client = ClientBuilder::new(args.api_key.clone()).build()?;
@@ -48,19 +55,33 @@ fn main() -> Result<()> {
         thread::spawn(move || loop {
             //request thread
             let msg: String = req_receiver.recv().unwrap();
-            let (req_msgs, model) = {
+            let (req_msgs, btn_state) = {
                 let mut req_state = req_state.write().unwrap();
-                req_state
-                    .history
-                    .push(MessageRequest::User(UserMessageRequest::new(msg.as_str())));
+                if req_state.btn_state.send_system_msg {
+                    req_state
+                        .history
+                        .push(MessageRequest::System(SystemMessageRequest::new(
+                            msg.as_str(),
+                        )));
+                } else {
+                    req_state
+                        .history
+                        .push(MessageRequest::User(UserMessageRequest::new(msg.as_str())));
+                }
+
                 req_state.display_message.push(DisplayContent {
                     is_user: true,
                     content: Some(msg.clone()),
                     reasoning_content: None,
                 });
-                (req_state.history.clone(), req_state.model.clone())
+                (req_state.history.clone(), req_state.btn_state.clone())
             };
 
+            let model = if btn_state.use_reasoning_model {
+                ModelType::DeepSeekReasoner
+            } else {
+                ModelType::DeepSeekChat
+            };
             let mut completions = client.chat();
             let builder = completions
                 .chat_builder(req_msgs)
@@ -116,7 +137,6 @@ fn main() -> Result<()> {
         req_state,
         input: Input::default(),
         scroll_offset: 0,
-        use_reasoning_model: false,
         cursor: Cursor::Input,
     };
     let terminal = ratatui::init();
@@ -129,7 +149,8 @@ fn main() -> Result<()> {
 #[derive(Debug, Clone, PartialEq)]
 enum Cursor {
     Chat,
-    Button,
+    DeepThinkButton,
+    UseSystemButton,
     Input,
 }
 
@@ -137,17 +158,17 @@ impl Cursor {
     fn next(self) -> Self {
         match self {
             Cursor::Chat => Cursor::Input,
-            Cursor::Input => Cursor::Button,
-            Cursor::Button => Cursor::Chat,
+            Cursor::Input => Cursor::DeepThinkButton,
+            Cursor::DeepThinkButton => Cursor::UseSystemButton,
+            Cursor::UseSystemButton => Cursor::Chat,
         }
     }
 }
 
 struct App {
     req_sender: Sender<String>,
-    req_state: Arc<RwLock<ReqStat>>,
+    req_state: Arc<RwLock<ShareState>>,
     input: Input,
-    use_reasoning_model: bool,
     cursor: Cursor,
     scroll_offset: usize,
 }
@@ -178,16 +199,20 @@ impl App {
                                 self.step(1);
                             }
                         }
-                        Cursor::Button => {
+                        Cursor::DeepThinkButton => {
                             // Handle button click
                             if key.code == KeyCode::Enter {
-                                self.use_reasoning_model = !self.use_reasoning_model;
                                 let mut req_state = self.req_state.write().unwrap();
-                                req_state.model = if self.use_reasoning_model {
-                                    ModelType::DeepSeekReasoner
-                                } else {
-                                    ModelType::DeepSeekChat
-                                };
+                                req_state.btn_state.use_reasoning_model =
+                                    !req_state.btn_state.use_reasoning_model;
+                            }
+                        }
+                        Cursor::UseSystemButton => {
+                            // Handle button click
+                            if key.code == KeyCode::Enter {
+                                let mut req_state = self.req_state.write().unwrap();
+                                req_state.btn_state.send_system_msg =
+                                    !req_state.btn_state.send_system_msg;
                             }
                         }
                         Cursor::Input => {
@@ -234,9 +259,13 @@ fn ui(f: &mut Frame, app: &mut App) {
         ])
         .split(f.area());
 
-    let (display_message, is_requesting) = {
+    let (display_message, is_requesting, btn_state) = {
         let state = app.req_state.read().unwrap();
-        (state.display_message.clone(), state.is_requesting)
+        (
+            state.display_message.clone(),
+            state.is_requesting,
+            state.btn_state.clone(),
+        )
     };
 
     ChatHistory::render(
@@ -256,35 +285,50 @@ fn ui(f: &mut Frame, app: &mut App) {
         is_requesting,
     );
 
-    render_button_row(
-        f,
-        chunks[2],
-        app.cursor == Cursor::Button,
-        app.use_reasoning_model,
-    );
+    render_button_row(f, chunks[2], &app.cursor, &btn_state);
 }
 
-fn render_button_row(f: &mut Frame, area: Rect, is_cursor: bool, use_reasoning_model: bool) {
-    let button_constraints = [Constraint::Length(12)];
+fn render_button_row(f: &mut Frame, area: Rect, cursor: &Cursor, btn_config: &BtnState) {
+    let button_constraints = [Constraint::Length(12), Constraint::Length(12)];
     let chunks = Layout::horizontal(button_constraints)
         .spacing(1)
         .split(area);
 
-    let mut block = Block::default().borders(Borders::ALL);
-    if is_cursor {
-        block = block.border_style(Style::default().fg(Color::LightBlue));
+    {
+        //deepthink button
+        let mut block = Block::default().borders(Borders::ALL);
+        if let Cursor::DeepThinkButton = cursor {
+            block = block.border_style(Style::default().fg(Color::LightBlue));
+        }
+        let style = if btn_config.use_reasoning_model {
+            Style::default().bg(Color::Rgb(112, 128, 174))
+        } else {
+            Style::default()
+        };
+        let para = Paragraph::new("Deep Think")
+            .block(block)
+            .style(style)
+            .alignment(Alignment::Center);
+        f.render_widget(para, chunks[0]);
     }
-    let style = if use_reasoning_model {
-        Style::default().bg(Color::Rgb(112, 128, 174))
-    } else {
-        Style::default()
-    };
-    let para = Paragraph::new("Deep Think")
-        .block(block)
-        .style(style)
-        .alignment(Alignment::Center);
 
-    f.render_widget(para, chunks[0]);
+    {
+        //use system message button
+        let mut block = Block::default().borders(Borders::ALL);
+        if let Cursor::UseSystemButton = cursor {
+            block = block.border_style(Style::default().fg(Color::LightBlue));
+        }
+        let style = if btn_config.send_system_msg {
+            Style::default().bg(Color::Rgb(112, 128, 174))
+        } else {
+            Style::default()
+        };
+        let para = Paragraph::new("System Msg")
+            .block(block)
+            .style(style)
+            .alignment(Alignment::Center);
+        f.render_widget(para, chunks[1]);
+    }
 }
 
 fn render_input(
