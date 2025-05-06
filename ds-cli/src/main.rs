@@ -2,7 +2,7 @@ mod chat_history;
 use anyhow::{anyhow, Result};
 use chat_history::{ChatHistory, DisplayContent};
 use clap::Parser;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use deepseek_api::{
     request::{MessageRequest, SystemMessageRequest, UserMessageRequest},
     response::{AssistantMessage, ModelType},
@@ -19,7 +19,7 @@ use std::sync::{
     Arc, RwLock,
 };
 use std::{thread, time::Duration};
-use tui_input::{backend::crossterm::EventHandler, Input};
+use tui_textarea::{Input, Key, TextArea};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -135,7 +135,7 @@ fn main() -> Result<()> {
     let app = App {
         req_sender,
         req_state,
-        input: Input::default(),
+        textarea: TextArea::default(),
         scroll_offset: 0,
         cursor: Cursor::Input,
     };
@@ -165,15 +165,15 @@ impl Cursor {
     }
 }
 
-struct App {
+struct App<'a> {
     req_sender: Sender<String>,
     req_state: Arc<RwLock<ShareState>>,
-    input: Input,
+    textarea: TextArea<'a>,
     cursor: Cursor,
     scroll_offset: usize,
 }
 
-impl App {
+impl App<'_> {
     fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         loop {
             terminal.draw(|f| ui(f, &mut self))?;
@@ -216,20 +216,32 @@ impl App {
                             }
                         }
                         Cursor::Input => {
+                            let mut req_state = self.req_state.write().unwrap();
+                            if req_state.is_requesting {
+                                continue;
+                            }
+
+                            if key.modifiers == KeyModifiers::CONTROL
+                                && (key.code == KeyCode::Enter || key.code == KeyCode::Char('j'))
+                            {
+                                self.textarea.input(Input {
+                                    key: Key::Enter,
+                                    ..Default::default()
+                                });
+                                continue;
+                            }
+
                             if key.code == KeyCode::Enter {
-                                let msg: String = self.input.value().into();
+                                let msg: String = self.textarea.lines().join("\n");
                                 if msg.is_empty() {
                                     continue;
                                 }
-                                let mut req_state = self.req_state.write().unwrap();
-                                if req_state.is_requesting {
-                                    continue;
-                                }
+
                                 req_state.is_requesting = true;
-                                self.input.reset();
+                                self.textarea = TextArea::default();
                                 self.req_sender.send(msg).unwrap();
                             } else {
-                                self.input.handle_event(&Event::Key(key));
+                                self.textarea.input(Event::Key(key));
                             }
                         }
                     }
@@ -254,7 +266,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(1),
-            Constraint::Length(3),
+            Constraint::Length(4),
             Constraint::Length(3),
         ])
         .split(f.area());
@@ -281,7 +293,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         f,
         chunks[1],
         app.cursor == Cursor::Input,
-        &app.input,
+        &mut app.textarea,
         is_requesting,
     );
 
@@ -335,32 +347,20 @@ fn render_input(
     f: &mut Frame,
     area: Rect,
     is_cursor: bool,
-    input_state: &Input,
+    text_area: &mut TextArea,
     is_requesting: bool,
 ) {
     //render inputs
-    let input_block = Block::default()
+    let mut input_block = Block::default()
         .borders(Borders::all())
         .title("Input Question?  Press ESC to exit");
 
-    let width = area.width.max(3) - 3;
-    let scroll = input_state.visual_scroll(width as usize);
-    let mut input = Paragraph::new(input_state.value())
-        .scroll((0, scroll as u16))
-        .block(input_block);
-
-    input = match (is_requesting, is_cursor) {
-        (_, false) => input.style(Style::default().fg(Color::Gray)),
-        (true, true) => input.style(Style::default().fg(Color::Gray)),
-        (false, true) => input.style(Style::default().fg(Color::LightBlue)),
+    input_block = match (is_requesting, is_cursor) {
+        (_, false) => input_block.border_style(Style::default().fg(Color::Gray)),
+        (true, true) => input_block.border_style(Style::default().fg(Color::Gray)),
+        (false, true) => input_block.border_style(Style::default().fg(Color::LightBlue)),
     };
 
-    f.render_widget(input, area);
-
-    if !is_requesting && is_cursor {
-        f.set_cursor_position((
-            area.x + ((input_state.visual_cursor()).max(scroll) - scroll) as u16 + 1,
-            area.y + 1,
-        ));
-    }
+    text_area.set_block(input_block);
+    f.render_widget(&*text_area, area);
 }

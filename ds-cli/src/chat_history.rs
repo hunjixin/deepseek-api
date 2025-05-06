@@ -65,10 +65,17 @@ impl ChatHistory {
         let constraints = vec![Constraint::Length(1); content_area.height as usize];
         let inner_layout = Layout::vertical(constraints).split(content_area);
         for i in 0..content_area.height as usize {
-            if let Some((text, is_content, alignment)) = visible_lines.get(i) {
+            if let Some((text, is_content, alignment, is_user)) = visible_lines.get(i) {
                 let para = if *is_content {
+                    let color = if *is_user {
+                        Color::LightBlue
+                    } else {
+                        Color::White
+                    };
+
                     Paragraph::new(text.clone())
                         .alignment(*alignment)
+                        .style(Style::default().fg(color))
                         .wrap(Wrap { trim: true })
                 } else {
                     Paragraph::new(text.clone())
@@ -112,7 +119,7 @@ impl ChatHistory {
         scroll_offset: usize,
         width: usize,
         height: usize,
-    ) -> Vec<(Cow<'_, str>, bool, Alignment)> {
+    ) -> Vec<(Cow<'_, str>, bool, Alignment, bool)> {
         let mut lines = Vec::with_capacity(height);
         let mut current_line = 0;
         let end_line = scroll_offset + height;
@@ -139,7 +146,7 @@ impl ChatHistory {
             };
             for (line, is_content) in msg_lines {
                 if current_line >= scroll_offset && current_line < end_line {
-                    lines.push((line, is_content, alignment));
+                    lines.push((line, is_content, alignment, msg.is_user));
                 }
                 current_line += 1;
                 if current_line >= end_line {
