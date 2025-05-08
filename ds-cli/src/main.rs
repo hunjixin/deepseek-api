@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use deepseek_api::{
     request::{MessageRequest, SystemMessageRequest, UserMessageRequest},
     response::{AssistantMessage, ModelType},
-    ClientBuilder, CompletionsRequestBuilder, RequestBuilder,
+    CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
     let req_state = Arc::new(RwLock::new(ShareState::default()));
 
     {
-        let client: deepseek_api::Client = ClientBuilder::new(args.api_key.clone()).build()?;
+        let client = DeepSeekClientBuilder::new(args.api_key.clone()).build()?;
         let req_state = req_state.clone();
         thread::spawn(move || loop {
             //request thread
@@ -82,11 +82,10 @@ fn main() -> Result<()> {
             } else {
                 ModelType::DeepSeekChat
             };
-            let completions = client.chat();
             let resp = CompletionsRequestBuilder::new(req_msgs.clone())
                 .stream(true)
                 .use_model(model)
-                .do_request(&completions)
+                .do_request(&client)
                 .unwrap()
                 .must_stream();
 

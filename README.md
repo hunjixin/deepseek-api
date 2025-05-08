@@ -42,7 +42,7 @@ The DeepSeek API SDK supports both asynchronous and synchronous usage patterns i
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::response::ModelType;
-use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{DeepSeekClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use std::io::{stdin, stdout, Write};
 use std::vec;
 
@@ -56,7 +56,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = ClientBuilder::new(args.api_key.clone()).build()?;
+    let client = DeepSeekClientBuilder::new(args.api_key.clone()).build()?;
     loop {
         let mut buffer = String::new();
 
@@ -117,7 +117,7 @@ deepseek-api = { version = "xx", default-features = false, features = ["is_sync"
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::{request::MessageRequest, response::ModelType};
-use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{DeepSeekClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use std::vec;
 
 #[derive(Parser, Debug)]
@@ -130,7 +130,7 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let client = ClientBuilder::new(args.api_key.clone())
+    let client = DeepSeekClientBuilder::new(args.api_key.clone())
         .timeout(300)
         .build()?;
     let mut history = vec![];
@@ -169,7 +169,7 @@ use deepseek_api::request::{
     Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
 };
 use deepseek_api::response::FinishReason;
-use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{DeepSeekClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
 use std::vec;
 
@@ -188,7 +188,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = ClientBuilder::new(args.api_key.clone()).build()?;
+    let client = DeepSeekClientBuilder::new(args.api_key.clone()).build()?;
     let parameters: SchemaObject = serde_json::from_str(
         r#"{
         "type": "object",

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::response::ModelType;
-use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use std::io::{stdin, stdout, Write};
 use std::vec;
 
@@ -15,7 +15,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = ClientBuilder::new(args.api_key.clone()).build()?;
+    let client = DeepSeekClientBuilder::new(args.api_key.clone()).build()?;
     loop {
         let mut buffer = String::new();
 
@@ -42,11 +42,10 @@ async fn main() -> Result<()> {
                 println!("models {:?}", models);
             }
             word => {
-                let completions = client.chat();
                 let resp = CompletionsRequestBuilder::new(vec![])
                     .use_model(ModelType::DeepSeekChat)
                     .append_user_message(word)
-                    .do_request(&completions)
+                    .do_request(&client)
                     .await?
                     .must_response();
 

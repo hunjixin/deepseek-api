@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::{request::MessageRequest, response::ModelType};
-use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use std::vec;
 
 #[derive(Parser, Debug)]
@@ -14,16 +14,15 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let client = ClientBuilder::new(args.api_key.clone())
+    let client = DeepSeekClientBuilder::new(args.api_key.clone())
         .timeout(300)
         .build()?;
-    let mut history = vec![];
 
-    let completions = client.chat();
+    let mut history = vec![];
     let resp = CompletionsRequestBuilder::new(vec![])
         .use_model(ModelType::DeepSeekReasoner)
         .append_user_message("hello world")
-        .do_request(&completions)?
+        .do_request(&client)?
         .must_response();
 
     let mut resp_words = vec![];
