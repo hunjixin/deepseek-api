@@ -42,7 +42,7 @@ The DeepSeek API SDK supports both asynchronous and synchronous usage patterns i
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::response::ModelType;
-use deepseek_api::{DeepSeekClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use std::io::{stdin, stdout, Write};
 use std::vec;
 
@@ -83,11 +83,10 @@ async fn main() -> Result<()> {
                 println!("models {:?}", models);
             }
             word => {
-                let completions = client.chat();
                 let resp = CompletionsRequestBuilder::new(vec![])
                     .use_model(ModelType::DeepSeekChat)
                     .append_user_message(word)
-                    .do_request(&completions)
+                    .do_request(&client)
                     .await?
                     .must_response();
 
@@ -117,7 +116,7 @@ deepseek-api = { version = "xx", default-features = false, features = ["is_sync"
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::{request::MessageRequest, response::ModelType};
-use deepseek_api::{DeepSeekClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use std::vec;
 
 #[derive(Parser, Debug)]
@@ -133,13 +132,12 @@ fn main() -> Result<()> {
     let client = DeepSeekClientBuilder::new(args.api_key.clone())
         .timeout(300)
         .build()?;
-    let mut history = vec![];
 
-    let completions = client.chat();
+    let mut history = vec![];
     let resp = CompletionsRequestBuilder::new(vec![])
         .use_model(ModelType::DeepSeekReasoner)
         .append_user_message("hello world")
-        .do_request(&completions)?
+        .do_request(&client)?
         .must_response();
 
     let mut resp_words = vec![];
@@ -169,7 +167,7 @@ use deepseek_api::request::{
     Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
 };
 use deepseek_api::response::FinishReason;
-use deepseek_api::{DeepSeekClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
 use std::vec;
 
@@ -220,10 +218,9 @@ async fn main() -> Result<()> {
     let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
         "How's the weather in Hangzhou?",
     ))];
-    let completetion = client.chat();
     let resp = CompletionsRequestBuilder::new(messages.clone())
         .tools(vec![tool_object.clone()])
-        .do_request(&completetion)
+        .do_request(&client)
         .await?
         .must_response();
     let mut id = String::new();
@@ -242,7 +239,7 @@ async fn main() -> Result<()> {
     messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
     let resp = CompletionsRequestBuilder::new(messages.clone())
         .tools(vec![tool_object.clone()])
-        .do_request(&completetion)
+        .do_request(&client)
         .await?
         .must_response();
     println!(
