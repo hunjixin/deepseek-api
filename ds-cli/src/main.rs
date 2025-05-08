@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use deepseek_api::{
     request::{MessageRequest, SystemMessageRequest, UserMessageRequest},
     response::{AssistantMessage, ModelType},
-    ClientBuilder,
+    ClientBuilder, CompletionsRequestBuilder, RequestBuilder,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -82,12 +82,13 @@ fn main() -> Result<()> {
             } else {
                 ModelType::DeepSeekChat
             };
-            let mut completions = client.chat();
-            let builder = completions
-                .chat_builder(req_msgs)
+            let completions = client.chat();
+            let resp = CompletionsRequestBuilder::new(req_msgs.clone())
                 .stream(true)
-                .use_model(model);
-            let resp = completions.create(builder).unwrap().must_stream();
+                .use_model(model)
+                .do_request(&completions)
+                .unwrap()
+                .must_stream();
 
             let mut content_buf = String::new();
             let mut reasoning_content_buf = String::new();

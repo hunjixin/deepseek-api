@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::ClientBuilder;
+use deepseek_api::{ClientBuilder, FMICompletionsRequestBuilder, RequestBuilder};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -20,12 +20,12 @@ fn main() -> Result<()> {
     let models = client.models()?;
     println!("models {:?}", models);
 
-    let mut completions = client.chat();
-    let builder = completions
-        .fim_builder("def fib(a):", "    return fib(a-1) + fib(a-2)")
+    let completions = client.chat();
+    let stream = FMICompletionsRequestBuilder::new("def fib(a):", "    return fib(a-1) + fib(a-2)")
         .max_tokens(128)?
-        .stream(true);
-    let stream = completions.create(builder)?.must_stream();
+        .stream(true)
+        .do_request(&completions)?
+        .must_stream();
     for item in stream {
         println!("resp: {:?}", item);
     }

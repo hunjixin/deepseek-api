@@ -1,11 +1,11 @@
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::ClientBuilder;
 use deepseek_api::request::MessageRequest;
 use deepseek_api::request::{
     Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
 };
 use deepseek_api::response::FinishReason;
+use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
 use std::vec;
 
@@ -56,12 +56,12 @@ async fn main() -> Result<()> {
     let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
         "How's the weather in Hangzhou?",
     ))];
-    let mut completetion = client.chat();
-    let req = client
-        .chat()
-        .chat_builder(messages.clone())
-        .tools(vec![tool_object.clone()]);
-    let resp = completetion.create(req).await?.must_response();
+    let completetion = client.chat();
+    let resp = CompletionsRequestBuilder::new(messages.clone())
+        .tools(vec![tool_object.clone()])
+        .do_request(&completetion)
+        .await?
+        .must_response();
     let mut id = String::new();
     if resp.choices[0].finish_reason == FinishReason::ToolCalls {
         if let Some(msg) = &resp.choices[0].message {
@@ -76,11 +76,11 @@ async fn main() -> Result<()> {
     }
 
     messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
-    let req = client
-        .chat()
-        .chat_builder(messages.clone())
-        .tools(vec![tool_object.clone()]);
-    let resp = completetion.create(req).await?.must_response();
+    let resp = CompletionsRequestBuilder::new(messages.clone())
+        .tools(vec![tool_object.clone()])
+        .do_request(&completetion)
+        .await?
+        .must_response();
     println!(
         "Reply with my function: {:?}",
         resp.choices[0].message.as_ref().unwrap().content

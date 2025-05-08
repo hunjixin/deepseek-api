@@ -1,11 +1,5 @@
 use super::json_stream::JsonStream;
-use crate::{
-    request::{
-        CompletionsRequestBuilder, FMICompletionsRequestBuilder, MessageRequest, RequestBuilder,
-    },
-    response::ChatResponse,
-};
-
+use crate::{response::ChatResponse, RequestBuilder};
 use anyhow::Result;
 use reqwest::blocking::Client as ReqwestClient;
 
@@ -16,20 +10,12 @@ pub struct ChatCompletions {
 }
 
 impl ChatCompletions {
-    pub fn chat_builder(&self, messages: Vec<MessageRequest>) -> CompletionsRequestBuilder {
-        CompletionsRequestBuilder::new(messages)
-    }
-
-    pub fn fim_builder(&self, prompt: &str, suffix: &str) -> FMICompletionsRequestBuilder {
-        FMICompletionsRequestBuilder::new(prompt, suffix)
-    }
-
     pub fn create<Builder>(
-        &mut self,
+        &self,
         request_builder: Builder,
     ) -> Result<ChatResponse<Builder::Response, Builder::Item>>
     where
-        Builder: RequestBuilder + Send,
+        Builder: RequestBuilder + Send + Sized,
     {
         let host = if request_builder.is_beta() {
             self.host.to_owned() + "/beta/completions"
