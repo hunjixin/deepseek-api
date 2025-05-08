@@ -55,7 +55,7 @@ fn main() -> Result<()> {
         thread::spawn(move || loop {
             //request thread
             let msg: String = req_receiver.recv().unwrap();
-            let (req_msgs, btn_state) = {
+            let resp = {
                 let mut req_state = req_state.write().unwrap();
                 if req_state.btn_state.send_system_msg {
                     req_state
@@ -74,20 +74,19 @@ fn main() -> Result<()> {
                     content: Some(msg.clone()),
                     reasoning_content: None,
                 });
-                (req_state.history.clone(), req_state.btn_state.clone())
-            };
 
-            let model = if btn_state.use_reasoning_model {
-                ModelType::DeepSeekReasoner
-            } else {
-                ModelType::DeepSeekChat
+                let model = if req_state.btn_state.use_reasoning_model {
+                    ModelType::DeepSeekReasoner
+                } else {
+                    ModelType::DeepSeekChat
+                };
+                CompletionsRequestBuilder::new(&req_state.history)
+                    .stream(true)
+                    .use_model(model)
+                    .do_request(&client)
+                    .unwrap()
+                    .must_stream()
             };
-            let resp = CompletionsRequestBuilder::new(req_msgs.clone())
-                .stream(true)
-                .use_model(model)
-                .do_request(&client)
-                .unwrap()
-                .must_stream();
 
             let mut content_buf = String::new();
             let mut reasoning_content_buf = String::new();

@@ -147,7 +147,7 @@ impl StreamOptions {
 
 /// Represents the temperature with a value between 0 and 2.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Temperature(pub u32);
+pub struct Temperature(pub f32);
 
 impl Temperature {
     /// Creates a new `Temperature` instance.
@@ -159,8 +159,8 @@ impl Temperature {
     /// # Errors
     ///
     /// Returns an error if the value is not between 0 and 2.
-    pub fn new(v: u32) -> Result<Self> {
-        if v > 2 {
+    pub fn new(v: f32) -> Result<Self> {
+        if !(0.0..=2.0).contains(&v) {
             return Err(anyhow!("Temperature must be between 0 and 2.".to_string()));
         }
         Ok(Temperature(v))
@@ -170,7 +170,7 @@ impl Temperature {
 impl Default for Temperature {
     /// Returns the default value for `Temperature`, which is 1.
     fn default() -> Self {
-        Temperature(1)
+        Temperature(1.0)
     }
 }
 
@@ -304,6 +304,30 @@ pub enum MessageRequest {
 }
 
 impl MessageRequest {
+    /// Creates a new `MessageRequest` instance for a user message.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - The content of the user message.
+    /// * `name` - An optional name for the user message.
+    pub fn user(content: &str) -> Self {
+        MessageRequest::User(UserMessageRequest {
+            content: content.to_string(),
+            name: None,
+        })
+    }
+
+    /// Creates a new `MessageRequest` instance for a system message.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - The content of the system message.
+    pub fn sys(content: &str) -> Self {
+        MessageRequest::System(SystemMessageRequest {
+            content: content.to_string(),
+            name: None,
+        })
+    }
     pub fn get_content(&self) -> &str {
         match self {
             MessageRequest::System(req) => req.content.as_str(),

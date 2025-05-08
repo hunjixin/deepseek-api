@@ -41,6 +41,7 @@ The DeepSeek API SDK supports both asynchronous and synchronous usage patterns i
 ```rust
 use anyhow::Result;
 use clap::Parser;
+use deepseek_api::request::MessageRequest;
 use deepseek_api::response::ModelType;
 use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use std::io::{stdin, stdout, Write};
@@ -83,9 +84,8 @@ async fn main() -> Result<()> {
                 println!("models {:?}", models);
             }
             word => {
-                let resp = CompletionsRequestBuilder::new(vec![])
+                let resp = CompletionsRequestBuilder::new(&[MessageRequest::user(word)])
                     .use_model(ModelType::DeepSeekChat)
-                    .append_user_message(word)
                     .do_request(&client)
                     .await?
                     .must_response();
@@ -134,9 +134,8 @@ fn main() -> Result<()> {
         .build()?;
 
     let mut history = vec![];
-    let resp = CompletionsRequestBuilder::new(vec![])
+    let resp = CompletionsRequestBuilder::new(&[MessageRequest::user("hello world")])
         .use_model(ModelType::DeepSeekReasoner)
-        .append_user_message("hello world")
         .do_request(&client)?
         .must_response();
 
@@ -163,9 +162,7 @@ Use the function calling interface to define and invoke tools via the API.
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::request::MessageRequest;
-use deepseek_api::request::{
-    Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
-};
+use deepseek_api::request::{Function, ToolMessageRequest, ToolObject, ToolType};
 use deepseek_api::response::FinishReason;
 use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
@@ -215,11 +212,10 @@ async fn main() -> Result<()> {
         },
     };
 
-    let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
-        "How's the weather in Hangzhou?",
-    ))];
-    let resp = CompletionsRequestBuilder::new(messages.clone())
-        .tools(vec![tool_object.clone()])
+    let tool_objects: Vec<ToolObject> = vec![tool_object];
+    let mut messages = vec![MessageRequest::user("How's the weather in Hangzhou?")];
+    let resp = CompletionsRequestBuilder::new(&messages)
+        .tools(&tool_objects)
         .do_request(&client)
         .await?
         .must_response();
@@ -237,8 +233,8 @@ async fn main() -> Result<()> {
     }
 
     messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
-    let resp = CompletionsRequestBuilder::new(messages.clone())
-        .tools(vec![tool_object.clone()])
+    let resp = CompletionsRequestBuilder::new(&messages)
+        .tools(&tool_objects)
         .do_request(&client)
         .await?
         .must_response();

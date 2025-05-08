@@ -19,9 +19,8 @@ fn main() -> Result<()> {
         .build()?;
 
     let mut history = vec![];
-    let resp = CompletionsRequestBuilder::new(vec![])
+    let resp = CompletionsRequestBuilder::new(&[MessageRequest::user("hello world")])
         .use_model(ModelType::DeepSeekReasoner)
-        .append_user_message("hello world")
         .do_request(&client)?
         .must_response();
 
