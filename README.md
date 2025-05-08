@@ -41,7 +41,8 @@ The DeepSeek API SDK supports both asynchronous and synchronous usage patterns i
 ```rust
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::{Client, request::MessageRequest, response::ModelType};
+use deepseek_api::response::ModelType;
+use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use std::io::{stdin, stdout, Write};
 use std::vec;
 
@@ -55,7 +56,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = Client::new(&args.api_key);
+    let client = ClientBuilder::new(args.api_key.clone()).build()?;
     loop {
         let mut buffer = String::new();
 
@@ -82,13 +83,17 @@ async fn main() -> Result<()> {
                 println!("models {:?}", models);
             }
             word => {
-                let mut completions = client.chat();
-                let builder = completions.chat_builder(vec![]).append_user_message(word);
-                let resp = completions.create(builder).await?.must_response();
+                let completions = client.chat();
+                let resp = CompletionsRequestBuilder::new(vec![])
+                    .use_model(ModelType::DeepSeekChat)
+                    .append_user_message(word)
+                    .do_request(&completions)
+                    .await?
+                    .must_response();
 
                 let mut resp_words = vec![];
                 for msg in resp.choices.iter() {
-                    history.push(MessageRequest::Assistant(msg.message.as_ref().expect("message exit").clone()));
+                    history.push(msg.message.as_ref().expect("message exit").clone());
                     resp_words.push(msg.message.as_ref().expect("message").content.clone());
                 }
 
@@ -100,7 +105,6 @@ async fn main() -> Result<()> {
     }
     Ok(())
 }
-
 ```
 
 ### Synchronous Example  (Requires Feature Flag)
@@ -112,8 +116,8 @@ deepseek-api = { version = "xx", default-features = false, features = ["is_sync"
 ```rs
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::Client;
 use deepseek_api::{request::MessageRequest, response::ModelType};
+use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use std::vec;
 
 #[derive(Parser, Debug)]
@@ -125,29 +129,32 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let client = Client::new(&args.api_key);
+
+    let client = ClientBuilder::new(args.api_key.clone())
+        .timeout(300)
+        .build()?;
     let mut history = vec![];
 
-    let mut completions = client.chat();
-    let builder = completions
-        .chat_builder(vec![])
-        .use_model(ModelType::DeepSeekChat)
-        .append_user_message("hello");
-    let resp = completions.create(builder)?.must_response();
+    let completions = client.chat();
+    let resp = CompletionsRequestBuilder::new(vec![])
+        .use_model(ModelType::DeepSeekReasoner)
+        .append_user_message("hello world")
+        .do_request(&completions)?
+        .must_response();
 
     let mut resp_words = vec![];
     for msg in resp.choices.iter() {
-        history.push(MessageRequest::Assistant(msg.message.as_ref().expect("message exit").clone()));
+        history.push(MessageRequest::Assistant(
+            msg.message.as_ref().expect("message exit").clone(),
+        ));
         resp_words.push(msg.message.as_ref().expect("message").content.clone());
     }
-
     for msg in resp_words.iter() {
         msg.split("\n").for_each(|x| println!("{}", x));
     }
 
     Ok(())
 }
-
 ```
 
 ### Function Calling
@@ -157,12 +164,14 @@ Use the function calling interface to define and invoke tools via the API.
 ```rust
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::request::{Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest};
-use deepseek_api::response::FinishReason;
-use deepseek_api::Client;
 use deepseek_api::request::MessageRequest;
-use std::vec;
+use deepseek_api::request::{
+    Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
+};
+use deepseek_api::response::FinishReason;
+use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
+use std::vec;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -179,8 +188,9 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = Client::new(&args.api_key);
-    let parameters: SchemaObject = serde_json::from_str(r#"{
+    let client = ClientBuilder::new(args.api_key.clone()).build()?;
+    let parameters: SchemaObject = serde_json::from_str(
+        r#"{
         "type": "object",
         "properties": {
             "location": {
@@ -194,29 +204,32 @@ async fn main() -> Result<()> {
             }
         },
         "required": ["location"]
-    }"#)?;
+    }"#,
+    )?;
 
-    let tool_object = ToolObject{
+    let tool_object = ToolObject {
         tool_type: ToolType::Function,
-        function: Function{
+        function: Function {
             name: "get_weather".to_string(),
-            description: "Get weather of an location, the user shoud supply a location first".to_string(),
-            parameters
+            description: "Get weather of an location, the user shoud supply a location first"
+                .to_string(),
+            parameters,
         },
     };
-   
-    let mut messages = vec![
-        MessageRequest::User(UserMessageRequest::new(
-            "How's the weather in Hangzhou?"
-        ))
-    ];
-    let mut completetion = client.chat();
-    let req = client.chat().chat_builder(messages.clone()).tools(vec![tool_object.clone()]);
-    let resp = completetion.create(req).await?.must_response();
+
+    let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
+        "How's the weather in Hangzhou?",
+    ))];
+    let completetion = client.chat();
+    let resp = CompletionsRequestBuilder::new(messages.clone())
+        .tools(vec![tool_object.clone()])
+        .do_request(&completetion)
+        .await?
+        .must_response();
     let mut id = String::new();
     if resp.choices[0].finish_reason == FinishReason::ToolCalls {
         if let Some(msg) = &resp.choices[0].message {
-           if let Some(tool) = &msg.tool_calls {
+            if let Some(tool) = &msg.tool_calls {
                 id = tool[0].id.clone();
                 println!("Function id: {}", id);
                 println!("Function name: {}", tool[0].function.name);
@@ -226,10 +239,16 @@ async fn main() -> Result<()> {
         }
     }
 
-    messages.push( MessageRequest::Tool(ToolMessageRequest::new("24℃", &id )));
-    let req = client.chat().chat_builder(messages.clone()).tools(vec![tool_object.clone()]);
-    let resp = completetion.create(req).await?.must_response();
-    println!("Reply with my function: {:?}", resp.choices[0].message.as_ref().unwrap().content);
+    messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
+    let resp = CompletionsRequestBuilder::new(messages.clone())
+        .tools(vec![tool_object.clone()])
+        .do_request(&completetion)
+        .await?
+        .must_response();
+    println!(
+        "Reply with my function: {:?}",
+        resp.choices[0].message.as_ref().unwrap().content
+    );
     Ok(())
 }
 ```

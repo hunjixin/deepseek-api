@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use deepseek_api::ClientBuilder;
 use deepseek_api::{request::MessageRequest, response::ModelType};
+use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
 use std::vec;
 
 #[derive(Parser, Debug)]
@@ -19,12 +19,12 @@ fn main() -> Result<()> {
         .build()?;
     let mut history = vec![];
 
-    let mut completions = client.chat();
-    let builder = completions
-        .chat_builder(vec![])
+    let completions = client.chat();
+    let resp = CompletionsRequestBuilder::new(vec![])
         .use_model(ModelType::DeepSeekReasoner)
-        .append_user_message("hello world");
-    let resp = completions.create(builder)?.must_response();
+        .append_user_message("hello world")
+        .do_request(&completions)?
+        .must_response();
 
     let mut resp_words = vec![];
     for msg in resp.choices.iter() {

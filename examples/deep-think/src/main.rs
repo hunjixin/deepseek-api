@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::{
-    ClientBuilder,
+    ClientBuilder, CompletionsRequestBuilder, RequestBuilder,
     request::{MessageRequest, UserMessageRequest},
     response::ModelType,
 };
@@ -20,14 +20,15 @@ async fn main() -> Result<()> {
 
     let client = ClientBuilder::new(args.api_key.clone()).build()?;
 
-    let mut completions = client.chat();
-    let builder = completions
-        .chat_builder(vec![MessageRequest::User(UserMessageRequest::new(
-            "how to get to beijing",
-        ))])
-        .use_model(ModelType::DeepSeekReasoner)
-        .stream(true);
-    let mut stream = completions.create(builder).await?.must_stream();
+    let completions = client.chat();
+    let mut stream = CompletionsRequestBuilder::new(vec![MessageRequest::User(
+        UserMessageRequest::new("how to get to beijing"),
+    )])
+    .use_model(ModelType::DeepSeekReasoner)
+    .stream(true)
+    .do_request(&completions)
+    .await?
+    .must_stream();
     while let Some(item) = stream.next().await {
         println!("resp: {:?}", item);
     }
