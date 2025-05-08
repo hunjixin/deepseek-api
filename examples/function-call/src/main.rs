@@ -1,9 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::request::MessageRequest;
-use deepseek_api::request::{
-    Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
-};
+use deepseek_api::request::{Function, ToolMessageRequest, ToolObject, ToolType};
 use deepseek_api::response::FinishReason;
 use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
@@ -53,11 +51,10 @@ async fn main() -> Result<()> {
         },
     };
 
-    let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
-        "How's the weather in Hangzhou?",
-    ))];
-    let resp = CompletionsRequestBuilder::new(messages.clone())
-        .tools(vec![tool_object.clone()])
+    let tool_objects: Vec<ToolObject> = vec![tool_object];
+    let mut messages = vec![MessageRequest::user("How's the weather in Hangzhou?")];
+    let resp = CompletionsRequestBuilder::new(&messages)
+        .tools(&tool_objects)
         .do_request(&client)
         .await?
         .must_response();
@@ -75,8 +72,8 @@ async fn main() -> Result<()> {
     }
 
     messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
-    let resp = CompletionsRequestBuilder::new(messages.clone())
-        .tools(vec![tool_object.clone()])
+    let resp = CompletionsRequestBuilder::new(&messages)
+        .tools(&tool_objects)
         .do_request(&client)
         .await?
         .must_response();

@@ -1,14 +1,13 @@
-use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{de::DeserializeOwned, ser::SerializeStruct, Serialize, Serializer};
 
 use crate::{
     request::{
         FrequencyPenalty, MaxToken, MessageRequest, PresencePenalty, ResponseFormat, ResponseType,
         Stop, StreamOptions, Temperature, ToolChoice, ToolObject, TopLogprobs, TopP,
-        UserMessageRequest,
     },
     response::{
-        AssistantMessage, ChatCompletion, ChatCompletionStream, ChatResponse, JSONChoiceStream,
-        ModelType, TextChoiceStream,
+        ChatCompletion, ChatCompletionStream, ChatResponse, JSONChoiceStream, ModelType,
+        TextChoiceStream,
     },
     DeepSeekClient,
 };
@@ -37,41 +36,28 @@ pub trait RequestBuilder: Sized + Send {
 }
 
 /// Represents a request for completions.
-#[derive(Debug, Default, Clone, Deserialize)]
-pub struct CompletionsRequest {
-    pub messages: Vec<MessageRequest>,
+#[derive(Debug, Default, Clone)]
+pub struct CompletionsRequest<'a> {
+    pub messages: &'a [MessageRequest],
     pub model: ModelType,
-    pub prompt: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<MaxToken>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub response_format: Option<ResponseFormat>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<Stop>,
     pub stream: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_options: Option<StreamOptions>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<ToolObject>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<&'a [ToolObject]>,
     pub tool_choice: Option<ToolChoice>,
 
     // ignore when model is deepseek-reasoner
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<Temperature>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<TopP>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub presence_penalty: Option<PresencePenalty>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<FrequencyPenalty>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub logprobs: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub top_logprobs: Option<TopLogprobs>,
 }
 
-impl Serialize for CompletionsRequest {
+impl Serialize for CompletionsRequest<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -80,23 +66,47 @@ impl Serialize for CompletionsRequest {
 
         state.serialize_field("messages", &self.messages)?;
         state.serialize_field("model", &self.model)?;
-        state.serialize_field("max_tokens", &self.max_tokens)?;
-        state.serialize_field("response_format", &self.response_format)?;
-        state.serialize_field("stop", &self.stop)?;
+
+        if let Some(max_tokens) = &self.max_tokens {
+            state.serialize_field("max_tokens", max_tokens)?;
+        }
+        if let Some(response_format) = &self.response_format {
+            state.serialize_field("response_format", response_format)?;
+        }
+        if let Some(stop) = &self.stop {
+            state.serialize_field("stop", stop)?;
+        }
         state.serialize_field("stream", &self.stream)?;
-        state.serialize_field("stream_options", &self.stream_options)?;
-        state.serialize_field("tools", &self.tools)?;
-        state.serialize_field("tool_choice", &self.tool_choice)?;
-        state.serialize_field("prompt", &self.prompt)?;
+        if let Some(stream_options) = &self.stream_options {
+            state.serialize_field("stream_options", stream_options)?;
+        }
+        if let Some(tools) = &self.tools {
+            state.serialize_field("tools", tools)?;
+        }
+        if let Some(tool_choice) = &self.tool_choice {
+            state.serialize_field("tool_choice", tool_choice)?;
+        }
 
         // Skip these fields if model is DeepSeekReasoner
         if self.model != ModelType::DeepSeekReasoner {
-            state.serialize_field("temperature", &self.temperature)?;
-            state.serialize_field("top_p", &self.top_p)?;
-            state.serialize_field("presence_penalty", &self.presence_penalty)?;
-            state.serialize_field("frequency_penalty", &self.frequency_penalty)?;
-            state.serialize_field("logprobs", &self.logprobs)?;
-            state.serialize_field("top_logprobs", &self.top_logprobs)?;
+            if let Some(temperature) = &self.temperature {
+                state.serialize_field("temperature", temperature)?;
+            }
+            if let Some(top_p) = &self.top_p {
+                state.serialize_field("top_p", top_p)?;
+            }
+            if let Some(presence_penalty) = &self.presence_penalty {
+                state.serialize_field("presence_penalty", presence_penalty)?;
+            }
+            if let Some(frequency_penalty) = &self.frequency_penalty {
+                state.serialize_field("frequency_penalty", frequency_penalty)?;
+            }
+            if let Some(logprobs) = &self.logprobs {
+                state.serialize_field("logprobs", logprobs)?;
+            }
+            if let Some(top_logprobs) = &self.top_logprobs {
+                state.serialize_field("top_logprobs", top_logprobs)?;
+            }
         }
 
         state.end()
@@ -104,10 +114,10 @@ impl Serialize for CompletionsRequest {
 }
 
 #[derive(Debug, Default)]
-pub struct CompletionsRequestBuilder {
+pub struct CompletionsRequestBuilder<'a> {
     //todo too many colone when use this type, improve it especially for message field
     beta: bool,
-    messages: Vec<MessageRequest>,
+    messages: &'a [MessageRequest],
     model: ModelType,
 
     stream: bool,
@@ -116,9 +126,8 @@ pub struct CompletionsRequestBuilder {
     max_tokens: Option<MaxToken>,
     response_format: Option<ResponseFormat>,
     stop: Option<Stop>,
-    tools: Option<Vec<ToolObject>>,
+    tools: Option<&'a [ToolObject]>,
     tool_choice: Option<ToolChoice>,
-    prompt: String,
     temperature: Option<Temperature>,
     top_p: Option<TopP>,
     presence_penalty: Option<PresencePenalty>,
@@ -127,36 +136,16 @@ pub struct CompletionsRequestBuilder {
     top_logprobs: Option<TopLogprobs>,
 }
 
-impl CompletionsRequestBuilder {
-    pub fn new(messages: Vec<MessageRequest>) -> Self {
+impl<'a> CompletionsRequestBuilder<'a> {
+    pub fn new(messages: &'a [MessageRequest]) -> Self {
         Self {
             messages,
             model: ModelType::DeepSeekChat,
-            prompt: String::new(),
             ..Default::default()
         }
     }
     pub fn use_model(mut self, model: ModelType) -> Self {
         self.model = model;
-        self
-    }
-
-    //https://api-docs.deepseek.com/guides/fim_completion
-    pub fn append_fim_message(self, _prompt: &str, _suffix: &str) -> Self {
-        todo!("Not enough detail in document")
-    }
-
-    // https://api-docs.deepseek.com/zh-cn/guides/chat_prefix_completion
-    pub fn append_prefix_message(mut self, msg: &str) -> Self {
-        self.messages.push(MessageRequest::Assistant(
-            AssistantMessage::new(msg).set_prefix(msg),
-        ));
-        self
-    }
-
-    pub fn append_user_message(mut self, msg: &str) -> Self {
-        self.messages
-            .push(MessageRequest::User(UserMessageRequest::new(msg)));
         self
     }
 
@@ -190,7 +179,7 @@ impl CompletionsRequestBuilder {
         self
     }
 
-    pub fn tools(mut self, value: Vec<ToolObject>) -> Self {
+    pub fn tools(mut self, value: &'a [ToolObject]) -> Self {
         self.tools = Some(value);
         self
     }
@@ -200,12 +189,7 @@ impl CompletionsRequestBuilder {
         self
     }
 
-    pub fn prompt(mut self, value: String) -> Self {
-        self.prompt = value;
-        self
-    }
-
-    pub fn temperature(mut self, value: u32) -> Result<Self> {
+    pub fn temperature(mut self, value: f32) -> Result<Self> {
         self.temperature = Some(Temperature::new(value)?);
         Ok(self)
     }
@@ -236,8 +220,8 @@ impl CompletionsRequestBuilder {
     }
 }
 
-impl RequestBuilder for CompletionsRequestBuilder {
-    type Request = CompletionsRequest;
+impl<'a> RequestBuilder for CompletionsRequestBuilder<'a> {
+    type Request = CompletionsRequest<'a>;
     type Response = ChatCompletion;
     type Item = ChatCompletionStream<JSONChoiceStream>;
 
@@ -249,7 +233,7 @@ impl RequestBuilder for CompletionsRequestBuilder {
         self.stream
     }
 
-    fn build(self) -> CompletionsRequest {
+    fn build(self) -> CompletionsRequest<'a> {
         CompletionsRequest {
             messages: self.messages,
             model: self.model,
@@ -260,7 +244,6 @@ impl RequestBuilder for CompletionsRequestBuilder {
             stream_options: self.stream_options,
             tools: self.tools,
             tool_choice: self.tool_choice,
-            prompt: self.prompt,
             temperature: self.temperature,
             top_p: self.top_p,
             presence_penalty: self.presence_penalty,
@@ -277,6 +260,7 @@ pub struct FMICompletionsRequest {
     pub model: ModelType,
     pub prompt: String,
     pub echo: bool,
+    pub suffix: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<FrequencyPenalty>,
@@ -291,7 +275,7 @@ pub struct FMICompletionsRequest {
     pub stream: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_options: Option<StreamOptions>,
-    pub suffix: String,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<Temperature>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -368,7 +352,7 @@ impl FMICompletionsRequestBuilder {
         self
     }
 
-    pub fn temperature(mut self, value: u32) -> Result<Self> {
+    pub fn temperature(mut self, value: f32) -> Result<Self> {
         self.temperature = Some(Temperature::new(value)?);
         Ok(self)
     }

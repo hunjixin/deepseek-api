@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
+use deepseek_api::request::MessageRequest;
 use deepseek_api::response::ModelType;
 use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use std::io::{stdin, stdout, Write};
@@ -42,9 +43,8 @@ async fn main() -> Result<()> {
                 println!("models {:?}", models);
             }
             word => {
-                let resp = CompletionsRequestBuilder::new(vec![])
+                let resp = CompletionsRequestBuilder::new(&[MessageRequest::user(word)])
                     .use_model(ModelType::DeepSeekChat)
-                    .append_user_message(word)
                     .do_request(&client)
                     .await?
                     .must_response();

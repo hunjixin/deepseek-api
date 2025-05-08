@@ -128,15 +128,14 @@ impl DeepSeekClient {
     /// # Example
     ///
     /// ```no_run
-    ///     use deepseek_api::{request::{MessageRequest, UserMessageRequest}, DeepSeekClientBuilder, CompletionsRequestBuilder};
+    ///     use deepseek_api::{request::MessageRequest, DeepSeekClientBuilder, CompletionsRequestBuilder};
     ///     use deepseek_api::response::ChatResponse;
     ///     use futures_util::StreamExt;
     ///
     ///     let api_key = "your_api_key".to_string();
     ///     let client = DeepSeekClientBuilder::new(api_key).build().unwrap();
-    ///     let request_builder = CompletionsRequestBuilder::new(vec![MessageRequest::User(
-    ///                 UserMessageRequest::new("Hello, DeepSeek!")
-    ///     )]);
+    ///     let msgs = &[MessageRequest::user("Hello, DeepSeek!")];
+    ///     let request_builder = CompletionsRequestBuilder::new(msgs);
     ///
     ///     let response = client.send_completion_request(request_builder).unwrap();
     ///     match response {
