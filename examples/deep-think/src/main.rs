@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use deepseek_api::{
-    ClientBuilder, CompletionsRequestBuilder, RequestBuilder,
+    CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder,
     request::{MessageRequest, UserMessageRequest},
     response::ModelType,
 };
@@ -17,16 +17,14 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+    let client = DeepSeekClientBuilder::new(args.api_key.clone()).build()?;
 
-    let client = ClientBuilder::new(args.api_key.clone()).build()?;
-
-    let completions = client.chat();
     let mut stream = CompletionsRequestBuilder::new(vec![MessageRequest::User(
         UserMessageRequest::new("how to get to beijing"),
     )])
     .use_model(ModelType::DeepSeekReasoner)
     .stream(true)
-    .do_request(&completions)
+    .do_request(&client)
     .await?
     .must_stream();
     while let Some(item) = stream.next().await {

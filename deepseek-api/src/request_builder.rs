@@ -1,7 +1,6 @@
 use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
 use crate::{
-    completions::ChatCompletions,
     request::{
         FrequencyPenalty, MaxToken, MessageRequest, PresencePenalty, ResponseFormat, ResponseType,
         Stop, StreamOptions, Temperature, ToolChoice, ToolObject, TopLogprobs, TopP,
@@ -11,8 +10,8 @@ use crate::{
         AssistantMessage, ChatCompletion, ChatCompletionStream, ChatResponse, JSONChoiceStream,
         ModelType, TextChoiceStream,
     },
+    DeepSeekClient,
 };
-
 use anyhow::{Ok, Result};
 
 pub trait RequestBuilder: Sized + Send {
@@ -26,12 +25,12 @@ pub trait RequestBuilder: Sized + Send {
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "is_sync")] {
-            fn do_request(self, client: &ChatCompletions) ->  Result<ChatResponse<Self::Response, Self::Item>>  {
-                client.create(self)
+            fn do_request(self, client: &DeepSeekClient) ->  Result<ChatResponse<Self::Response, Self::Item>>  {
+                client.send_completion_request(self)
             }
         } else {
-            fn do_request(self, client: &ChatCompletions) ->  impl std::future::Future<Output = Result<ChatResponse<Self::Response, Self::Item>>> + Send {async {
-                    client.create(self).await
+            fn do_request(self, client: &DeepSeekClient) ->  impl std::future::Future<Output = Result<ChatResponse<Self::Response, Self::Item>>> + Send {async {
+                client.send_completion_request(self).await
             }}
         }
     }

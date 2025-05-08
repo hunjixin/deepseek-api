@@ -5,7 +5,7 @@ use deepseek_api::request::{
     Function, ToolMessageRequest, ToolObject, ToolType, UserMessageRequest,
 };
 use deepseek_api::response::FinishReason;
-use deepseek_api::{ClientBuilder, CompletionsRequestBuilder, RequestBuilder};
+use deepseek_api::{CompletionsRequestBuilder, DeepSeekClientBuilder, RequestBuilder};
 use schemars::schema::SchemaObject;
 use std::vec;
 
@@ -24,7 +24,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let client = ClientBuilder::new(args.api_key.clone()).build()?;
+    let client = DeepSeekClientBuilder::new(args.api_key.clone()).build()?;
     let parameters: SchemaObject = serde_json::from_str(
         r#"{
         "type": "object",
@@ -56,10 +56,9 @@ async fn main() -> Result<()> {
     let mut messages = vec![MessageRequest::User(UserMessageRequest::new(
         "How's the weather in Hangzhou?",
     ))];
-    let completetion = client.chat();
     let resp = CompletionsRequestBuilder::new(messages.clone())
         .tools(vec![tool_object.clone()])
-        .do_request(&completetion)
+        .do_request(&client)
         .await?
         .must_response();
     let mut id = String::new();
@@ -78,7 +77,7 @@ async fn main() -> Result<()> {
     messages.push(MessageRequest::Tool(ToolMessageRequest::new("24℃", &id)));
     let resp = CompletionsRequestBuilder::new(messages.clone())
         .tools(vec![tool_object.clone()])
-        .do_request(&completetion)
+        .do_request(&client)
         .await?
         .must_response();
     println!(
