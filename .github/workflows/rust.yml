@@ -9,9 +9,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   build:
 
@@ -29,6 +26,10 @@ jobs:
         github.event_name == 'pull_request_target'
       uses: 1Password/check-signed-commits-action@v1
 
+    - name: Install rust toolchain
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        components: clippy,rustfmt
     - name: Foramt check
       run: |
         cargo fmt --all -- --check

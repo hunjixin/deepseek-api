@@ -130,7 +130,7 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let client = DeepSeekClientBuilder::new(args.api_key.clone())
-        .timeout(300)
+        .with_timeout(300)
         .build()?;
 
     let mut history = vec![];
